@@ -1,15 +1,16 @@
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Node.js (if applicable)
-node_modules/
-npm-debug.log
-
-# Python (if applicable)
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.venv/
 venv/
-
-# Environment variables (IMPORTANT: Keep your API keys private!)
 .env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.DS_Store

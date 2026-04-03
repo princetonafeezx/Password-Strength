@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "password-strength"
+version = "0.1.0"
+description = "Enterprise-grade CLI password strength auditor"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Princeton" }
+]
+dependencies = []
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["password_strength*"]

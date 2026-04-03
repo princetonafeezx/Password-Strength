@@ -7,8 +7,24 @@ class PasswordStrengthError(Exception):
     """Base exception for the password strength package."""
 
 
+class PasswordConfigError(PasswordStrengthError):
+    """Raised when password configuration is invalid."""
+
+
+class PasswordPolicyError(PasswordStrengthError):
+    """Raised when password policy execution fails unexpectedly."""
+
+
+class PasswordDictionaryError(PasswordStrengthError):
+    """Raised when dictionary or banned-token resources cannot be loaded."""
+
+
+class UnsafePasswordOutputError(PasswordStrengthError):
+    """Raised when a caller requests unsafe raw-password output."""
+
+
 class PasswordInputError(PasswordStrengthError):
-    """Raised when CLI or file-based input cannot be processed safely."""
+    """Raised when password input is missing, malformed, or unsupported."""
 
 
 class PolicyConfigurationError(PasswordStrengthError):

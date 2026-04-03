@@ -1,11 +1,17 @@
+from pathlib import Path
+
+from password_strength.exceptions import PasswordDictionaryError
+from password_strength.models import PasswordConfig
+
 from password_strength.resources import (
     load_banned_tokens,
     load_common_passwords,
     load_keyboard_patterns,
     load_password_config,
     load_policy_preset,
+    read_text_lines
+    
 )
-from password_strength.models import PasswordConfig
 
 def test_common_passwords_load() -> None:
     values = load_common_passwords()
@@ -53,3 +59,12 @@ def test_password_config_loads_from_strict_policy() -> None:
     assert config.policy_name == "strict"
     assert config.min_length == 16
     assert config.min_character_classes == 4
+
+def test_read_text_lines_raises_dictionary_error_for_missing_file() -> None:
+    missing_path = Path("resources") / "does_not_exist.txt"
+
+    try:
+        read_text_lines(missing_path)
+        assert False, "Expected PasswordDictionaryError for missing text resource"
+    except PasswordDictionaryError as exc:
+        assert "Failed to load text resource" in str(exc)

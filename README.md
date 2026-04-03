@@ -584,3 +584,20 @@ This project uses a small but strict quality baseline from the start:
 
 ```powershell
 pip install -e .[dev]
+
+## Pipeline stages
+
+The application is designed around a stable 10-stage pipeline:
+
+1. `read_input`
+2. `sanitize_input`
+3. `parse_passwords`
+4. `validate_policy`
+5. `detect_patterns`
+6. `check_dictionary`
+7. `score_passwords`
+8. `classify_results`
+9. `export_results`
+10. `build_report`
+
+This execution order is intentional and is preserved in the orchestration layer so future features can be added without changing the public flow of the application.

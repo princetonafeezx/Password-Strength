@@ -22,7 +22,20 @@ PIPELINE_STAGES: tuple[str, ...] = (
 
 @dataclass(slots=True)
 class PipelineContext:
-    """Carries data and execution details through the password pipeline."""
+    """Carries data and execution details through the password pipeline.
+
+    Data flow overview:
+        raw_input
+        -> sanitized_input
+        -> parsed_passwords
+        -> policy_results
+        -> pattern_results
+        -> dictionary_results
+        -> score_results
+        -> classified_results
+        -> exported_output
+        -> report
+    """
 
     source: str = "unknown"
     raw_input: Any = None
@@ -43,7 +56,27 @@ class PipelineContext:
 
 
 class PasswordPipeline:
-    """Coordinates the end-to-end password auditing pipeline."""
+    """Coordinates the end-to-end password auditing pipeline.
+
+    Execution order:
+        1. read_input
+        2. sanitize_input
+        3. parse_passwords
+        4. validate_policy
+        5. detect_patterns
+        6. check_dictionary
+        7. score_passwords
+        8. classify_results
+        9. export_results
+        10. build_report
+
+    Design intent:
+        - Keep orchestration in one place.
+        - Keep stage ordering stable.
+        - Let each stage own one major responsibility.
+        - Allow future implementations to replace placeholders without
+          changing the public pipeline contract.
+    """
 
     def __init__(self) -> None:
         self.stage_order = PIPELINE_STAGES
@@ -52,15 +85,34 @@ class PasswordPipeline:
         """Run the full password pipeline in the defined stage order."""
         context = PipelineContext(source=source, raw_input=raw_input)
 
+        # Stage 1: normalize inbound data from CLI, files, stdin, or future modes.
         context = self.read_input(context)
+
+        # Stage 2: clean unsafe or malformed input while preserving audit intent.
         context = self.sanitize_input(context)
+
+        # Stage 3: turn the sanitized input into one or more password candidates.
         context = self.parse_passwords(context)
+
+        # Stage 4: apply deterministic policy rules.
         context = self.validate_policy(context)
+
+        # Stage 5: detect structural and regex-driven weak patterns.
         context = self.detect_patterns(context)
+
+        # Stage 6: compare passwords against dictionary and banned-token intelligence.
         context = self.check_dictionary(context)
+
+        # Stage 7: generate strength and entropy-related scoring outputs.
         context = self.score_passwords(context)
+
+        # Stage 8: map raw results into user-facing classifications.
         context = self.classify_results(context)
+
+        # Stage 9: prepare exportable output structures.
         context = self.export_results(context)
+
+        # Stage 10: build the final run summary and metadata.
         context = self.build_report(context)
 
         return context

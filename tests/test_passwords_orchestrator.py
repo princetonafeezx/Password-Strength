@@ -42,4 +42,9 @@ def test_pipeline_builds_summary_report() -> None:
 
     assert result.report["source"] == "stdin"
     assert result.report["total_passwords"] == 1
-    assert "build_report" in result.report["completed_stages"]
+    assert "build_report" in result.completed_stages
+
+
+def test_pipeline_context_keeps_stage_history_order() -> None:
+    result = run_password_pipeline("AnotherPassword1!", source="cli")
+    assert result.completed_stages == list(PIPELINE_STAGES)

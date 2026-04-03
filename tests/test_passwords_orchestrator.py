@@ -1,6 +1,7 @@
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordScoreResult
 from password_strength.passwords import PIPELINE_STAGES
 from password_strength.passwords import PasswordPipeline
 from password_strength.passwords import run_password_pipeline
@@ -80,6 +81,14 @@ def test_pipeline_creates_pattern_results() -> None:
     assert result.pattern_results[0].candidate.cleaned_password == "Password1!"
 
 
+def test_pipeline_creates_score_results() -> None:
+    result = run_password_pipeline("Password1!", source="cli")
+
+    assert len(result.score_results) == 1
+    assert isinstance(result.score_results[0], PasswordScoreResult)
+    assert result.score_results[0].candidate.cleaned_password == "Password1!"
+
+
 def test_pipeline_report_includes_policy_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
@@ -90,3 +99,9 @@ def test_pipeline_report_includes_pattern_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
     assert result.report["pattern_results_count"] == 2
+
+
+def test_pipeline_report_includes_score_result_count() -> None:
+    result = run_password_pipeline(["one", "two"], source="file")
+
+    assert result.report["score_results_count"] == 2

@@ -117,3 +117,41 @@ class PasswordPatternResult:
     def add_weak_token(self, token: str) -> None:
         """Record a weak token detected within the candidate."""
         self.weak_tokens_detected.append(token)
+
+
+@dataclass(slots=True)
+class PasswordScoreResult:
+    """Stores scoring outputs for one password candidate."""
+
+    candidate: PasswordCandidate
+    entropy_estimate: float = 0.0
+    length_score: int = 0
+    diversity_score: int = 0
+    pattern_penalty: int = 0
+    dictionary_penalty: int = 0
+    repetition_penalty: int = 0
+    predictability_penalty: int = 0
+    randomness_bonus: int = 0
+    passphrase_bonus: int = 0
+    final_score: int = 0
+    strength_label: str = "Unrated"
+    scoring_notes: list[str] = field(default_factory=list)
+
+    def add_note(self, note: str) -> None:
+        """Record a scoring explanation note."""
+        self.scoring_notes.append(note)
+
+    @property
+    def total_penalty(self) -> int:
+        """Return the total penalty from all penalty components."""
+        return (
+            self.pattern_penalty
+            + self.dictionary_penalty
+            + self.repetition_penalty
+            + self.predictability_penalty
+        )
+
+    @property
+    def total_bonus(self) -> int:
+        """Return the total bonus from all bonus components."""
+        return self.randomness_bonus + self.passphrase_bonus

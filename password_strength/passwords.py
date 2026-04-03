@@ -8,6 +8,7 @@ from typing import Any
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordScoreResult
 
 
 PIPELINE_STAGES: tuple[str, ...] = (
@@ -48,7 +49,7 @@ class PipelineContext:
     policy_results: list[PasswordPolicyResult] = field(default_factory=list)
     pattern_results: list[PasswordPatternResult] = field(default_factory=list)
     dictionary_results: list[Any] = field(default_factory=list)
-    score_results: list[Any] = field(default_factory=list)
+    score_results: list[PasswordScoreResult] = field(default_factory=list)
     classified_results: list[Any] = field(default_factory=list)
     exported_output: Any = None
     report: Any = None
@@ -146,8 +147,11 @@ class PasswordPipeline:
         return context
 
     def score_passwords(self, context: PipelineContext) -> PipelineContext:
-        """Score passwords based on structure, patterns, and risk signals."""
-        context.score_results = []
+        """Create placeholder score results for parsed passwords."""
+        context.score_results = [
+            PasswordScoreResult(candidate=candidate)
+            for candidate in context.parsed_passwords
+        ]
         context.mark_stage_complete("score_passwords")
         return context
 
@@ -170,6 +174,7 @@ class PasswordPipeline:
             "total_passwords": len(context.parsed_passwords),
             "policy_results_count": len(context.policy_results),
             "pattern_results_count": len(context.pattern_results),
+            "score_results_count": len(context.score_results),
             "completed_stages": list(context.completed_stages),
         }
         context.mark_stage_complete("build_report")

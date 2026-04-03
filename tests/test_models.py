@@ -1,6 +1,7 @@
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordScoreResult
 
 
 def test_password_candidate_stores_values() -> None:
@@ -141,3 +142,53 @@ def test_password_pattern_result_tracks_weak_tokens() -> None:
     result.add_weak_token("summer")
     assert result.weak_tokens_detected == ["summer"]
     assert result.has_pattern_findings is True
+
+
+def test_password_score_result_defaults() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Example123!",
+        cleaned_password="Example123!",
+    )
+    result = PasswordScoreResult(candidate=candidate)
+
+    assert result.candidate is candidate
+    assert result.entropy_estimate == 0.0
+    assert result.final_score == 0
+    assert result.strength_label == "Unrated"
+    assert result.total_penalty == 0
+    assert result.total_bonus == 0
+
+
+def test_password_score_result_tracks_notes() -> None:
+    candidate = PasswordCandidate(
+        raw_password="LongerPassword123!",
+        cleaned_password="LongerPassword123!",
+    )
+    result = PasswordScoreResult(candidate=candidate)
+
+    result.add_note("Good length contribution.")
+    result.add_note("No final score calculated yet.")
+
+    assert result.scoring_notes == [
+        "Good length contribution.",
+        "No final score calculated yet.",
+    ]
+
+
+def test_password_score_result_totals() -> None:
+    candidate = PasswordCandidate(
+        raw_password="abc123",
+        cleaned_password="abc123",
+    )
+    result = PasswordScoreResult(
+        candidate=candidate,
+        pattern_penalty=10,
+        dictionary_penalty=15,
+        repetition_penalty=5,
+        predictability_penalty=20,
+        randomness_bonus=8,
+        passphrase_bonus=4,
+    )
+
+    assert result.total_penalty == 50
+    assert result.total_bonus == 12

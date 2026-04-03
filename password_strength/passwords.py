@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from password_strength.models import PasswordAuditRecord
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
@@ -25,22 +26,20 @@ PIPELINE_STAGES: tuple[str, ...] = (
 )
 
 
+def mask_password(password: str) -> str:
+    """Return a masked representation of a password for safe display."""
+    if not password:
+        return ""
+    if len(password) <= 2:
+        return "*" * len(password)
+    if len(password) <= 4:
+        return password[0] + ("*" * (len(password) - 1))
+    return password[:2] + ("*" * (len(password) - 4)) + password[-2:]
+
+
 @dataclass(slots=True)
 class PipelineContext:
-    """Carries data and execution details through the password pipeline.
-
-    Data flow overview:
-        raw_input
-        -> sanitized_input
-        -> parsed_passwords
-        -> policy_results
-        -> pattern_results
-        -> dictionary_results
-        -> score_results
-        -> classified_results
-        -> exported_output
-        -> report
-    """
+    """Carries data and execution details through the password pipeline."""
 
     source: str = "unknown"
     raw_input: Any = None
@@ -50,7 +49,7 @@ class PipelineContext:
     pattern_results: list[PasswordPatternResult] = field(default_factory=list)
     dictionary_results: list[Any] = field(default_factory=list)
     score_results: list[PasswordScoreResult] = field(default_factory=list)
-    classified_results: list[Any] = field(default_factory=list)
+    classified_results: list[PasswordAuditRecord] = field(default_factory=list)
     exported_output: Any = None
     report: Any = None
     completed_stages: list[str] = field(default_factory=list)
@@ -156,8 +155,23 @@ class PasswordPipeline:
         return context
 
     def classify_results(self, context: PipelineContext) -> PipelineContext:
-        """Classify audit results into user-facing categories."""
-        context.classified_results = []
+        """Combine per-stage outputs into final audit records."""
+        context.classified_results = [
+            PasswordAuditRecord(
+                candidate=candidate,
+                policy_result=policy_result,
+                pattern_result=pattern_result,
+                score_result=score_result,
+                masked_password=mask_password(candidate.cleaned_password),
+            )
+            for candidate, policy_result, pattern_result, score_result in zip(
+                context.parsed_passwords,
+                context.policy_results,
+                context.pattern_results,
+                context.score_results,
+                strict=True,
+            )
+        ]
         context.mark_stage_complete("classify_results")
         return context
 
@@ -175,6 +189,7 @@ class PasswordPipeline:
             "policy_results_count": len(context.policy_results),
             "pattern_results_count": len(context.pattern_results),
             "score_results_count": len(context.score_results),
+            "classified_results_count": len(context.classified_results),
             "completed_stages": list(context.completed_stages),
         }
         context.mark_stage_complete("build_report")

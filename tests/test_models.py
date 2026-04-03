@@ -1,3 +1,4 @@
+from password_strength.models import PasswordAuditRecord
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
@@ -192,3 +193,58 @@ def test_password_score_result_totals() -> None:
 
     assert result.total_penalty == 50
     assert result.total_bonus == 12
+
+
+def test_password_audit_record_defaults_and_properties() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Example123!",
+        cleaned_password="Example123!",
+        source="cli",
+    )
+    policy_result = PasswordPolicyResult(candidate=candidate)
+    pattern_result = PasswordPatternResult(candidate=candidate)
+    score_result = PasswordScoreResult(
+        candidate=candidate,
+        final_score=72,
+        strength_label="Strong",
+    )
+
+    record = PasswordAuditRecord(
+        candidate=candidate,
+        policy_result=policy_result,
+        pattern_result=pattern_result,
+        score_result=score_result,
+        masked_password="Ex*******!",
+    )
+
+    assert record.cleaned_password == "Example123!"
+    assert record.raw_password_optional == "Example123!"
+    assert record.policy_passed is True
+    assert record.score == 72
+    assert record.strength_rating == "Strong"
+
+
+def test_password_audit_record_tracks_findings_warnings_and_suggestions() -> None:
+    candidate = PasswordCandidate(
+        raw_password="abc123",
+        cleaned_password="abc123",
+    )
+    policy_result = PasswordPolicyResult(candidate=candidate)
+    pattern_result = PasswordPatternResult(candidate=candidate)
+    score_result = PasswordScoreResult(candidate=candidate)
+
+    record = PasswordAuditRecord(
+        candidate=candidate,
+        policy_result=policy_result,
+        pattern_result=pattern_result,
+        score_result=score_result,
+        masked_password="ab**23",
+    )
+
+    record.add_finding("Sequential pattern detected.")
+    record.add_warning("Password is highly predictable.")
+    record.add_remediation_suggestion("Increase length and avoid sequences.")
+
+    assert record.findings == ["Sequential pattern detected."]
+    assert record.warnings == ["Password is highly predictable."]
+    assert record.remediation_suggestions == ["Increase length and avoid sequences."]

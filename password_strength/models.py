@@ -155,3 +155,54 @@ class PasswordScoreResult:
     def total_bonus(self) -> int:
         """Return the total bonus from all bonus components."""
         return self.randomness_bonus + self.passphrase_bonus
+
+
+@dataclass(slots=True)
+class PasswordAuditRecord:
+    """Final per-password audit record ready for reporting and export."""
+
+    candidate: PasswordCandidate
+    policy_result: PasswordPolicyResult
+    pattern_result: PasswordPatternResult
+    score_result: PasswordScoreResult
+    masked_password: str
+    findings: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    remediation_suggestions: list[str] = field(default_factory=list)
+
+    @property
+    def raw_password_optional(self) -> str | None:
+        """Return the raw password when explicitly available on the candidate."""
+        return self.candidate.raw_password
+
+    @property
+    def cleaned_password(self) -> str:
+        """Return the cleaned password from the candidate."""
+        return self.candidate.cleaned_password
+
+    @property
+    def policy_passed(self) -> bool:
+        """Return the policy status from the linked policy result."""
+        return self.policy_result.policy_passed
+
+    @property
+    def score(self) -> int:
+        """Return the final score from the linked score result."""
+        return self.score_result.final_score
+
+    @property
+    def strength_rating(self) -> str:
+        """Return the strength label from the linked score result."""
+        return self.score_result.strength_label
+
+    def add_finding(self, finding: str) -> None:
+        """Record a finding on the audit record."""
+        self.findings.append(finding)
+
+    def add_warning(self, warning: str) -> None:
+        """Record a warning on the audit record."""
+        self.warnings.append(warning)
+
+    def add_remediation_suggestion(self, suggestion: str) -> None:
+        """Record a remediation suggestion on the audit record."""
+        self.remediation_suggestions.append(suggestion)

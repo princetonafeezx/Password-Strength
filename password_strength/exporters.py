@@ -1,3 +1,3 @@
-"""
-Export helpers for JSON, JSONL, CSV, and console reporting will be added here.
-"""
+"""Export utilities for password audit results."""
+
+from __future__ import annotations

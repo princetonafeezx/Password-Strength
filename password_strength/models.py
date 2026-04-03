@@ -1,3 +1,3 @@
-"""
-Dataclasses for password audit records will be added here in later steps.
-"""
+"""Data models for password analysis."""
+
+from __future__ import annotations

@@ -1,3 +1,3 @@
-"""
-Password policy validation logic will be added here.
-"""
+"""Password policy validation logic."""
+
+from __future__ import annotations

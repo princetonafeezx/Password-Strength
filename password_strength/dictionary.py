@@ -1,3 +1,3 @@
-"""
-Dictionary and banned-password detection logic will be added here.
-"""
+"""Dictionary and banned-password checks."""
+
+from __future__ import annotations

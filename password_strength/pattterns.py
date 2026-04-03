@@ -1,3 +1,3 @@
-"""
-Pattern detection logic will be added here.
-"""
+"""Pattern detection logic for passwords."""
+
+from __future__ import annotations

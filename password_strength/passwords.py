@@ -10,3 +10,11 @@ Later steps will connect:
 - scoring
 - reporting/export
 """
+"""Top-level orchestration module for password workflows."""
+
+from __future__ import annotations
+
+
+def run_password_pipeline() -> None:
+    """Placeholder for the full password auditing pipeline."""
+    return None

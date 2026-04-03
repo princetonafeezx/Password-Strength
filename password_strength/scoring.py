@@ -1,3 +1,3 @@
-"""
-Password scoring and entropy estimation logic will be added here.
-"""
+"""Password scoring and entropy estimation."""
+
+from __future__ import annotations

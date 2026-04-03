@@ -1,3 +1,3 @@
-"""
-Human-readable password feedback generation logic will be added here.
-"""
+"""Human-readable feedback generation."""
+
+from __future__ import annotations

@@ -29,9 +29,11 @@ def handle_command(args: argparse.Namespace) -> int:
     )
 
     # For now, just print policy stage placeholder
-    print({
-        "policy_results": result.policy_results,
-        "total_passwords": len(result.parsed_passwords),
-    })
+    print(
+        {
+            "policy_results": result.policy_results,
+            "total_passwords": len(result.parsed_passwords),
+        }
+    )
 
     return 0

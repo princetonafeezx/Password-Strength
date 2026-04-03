@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from typing import Sequence
+from collections.abc import Sequence
 
 from password_strength import __version__
 from password_strength.cli.password_audit import register_parser as register_audit_parser

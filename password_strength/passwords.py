@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from password_strength.models import PasswordCandidate
 
 PIPELINE_STAGES: tuple[str, ...] = (
     "read_input",
@@ -40,7 +41,7 @@ class PipelineContext:
     source: str = "unknown"
     raw_input: Any = None
     sanitized_input: Any = None
-    parsed_passwords: list[Any] = field(default_factory=list)
+    parsed_passwords: list[PasswordCandidate] = field(default_factory=list)
     policy_results: list[Any] = field(default_factory=list)
     pattern_results: list[Any] = field(default_factory=list)
     dictionary_results: list[Any] = field(default_factory=list)
@@ -85,34 +86,15 @@ class PasswordPipeline:
         """Run the full password pipeline in the defined stage order."""
         context = PipelineContext(source=source, raw_input=raw_input)
 
-        # Stage 1: normalize inbound data from CLI, files, stdin, or future modes.
         context = self.read_input(context)
-
-        # Stage 2: clean unsafe or malformed input while preserving audit intent.
         context = self.sanitize_input(context)
-
-        # Stage 3: turn the sanitized input into one or more password candidates.
         context = self.parse_passwords(context)
-
-        # Stage 4: apply deterministic policy rules.
         context = self.validate_policy(context)
-
-        # Stage 5: detect structural and regex-driven weak patterns.
         context = self.detect_patterns(context)
-
-        # Stage 6: compare passwords against dictionary and banned-token intelligence.
         context = self.check_dictionary(context)
-
-        # Stage 7: generate strength and entropy-related scoring outputs.
         context = self.score_passwords(context)
-
-        # Stage 8: map raw results into user-facing classifications.
         context = self.classify_results(context)
-
-        # Stage 9: prepare exportable output structures.
         context = self.export_results(context)
-
-        # Stage 10: build the final run summary and metadata.
         context = self.build_report(context)
 
         return context
@@ -133,9 +115,22 @@ class PasswordPipeline:
         if context.sanitized_input is None:
             context.parsed_passwords = []
         elif isinstance(context.sanitized_input, list):
-            context.parsed_passwords = list(context.sanitized_input)
+            context.parsed_passwords = [
+                PasswordCandidate(
+                    raw_password=str(value),
+                    cleaned_password=str(value),
+                    source=context.source,
+                )
+                for value in context.sanitized_input
+            ]
         else:
-            context.parsed_passwords = [context.sanitized_input]
+            context.parsed_passwords = [
+                PasswordCandidate(
+                    raw_password=str(context.sanitized_input),
+                    cleaned_password=str(context.sanitized_input),
+                    source=context.source,
+                )
+            ]
 
         context.mark_stage_complete("parse_passwords")
         return context
@@ -171,7 +166,7 @@ class PasswordPipeline:
         return context
 
     def export_results(self, context: PipelineContext) -> PipelineContext:
-        """Prepare exported output for the requested output mode."""
+        """Prepare exportable output structures."""
         context.exported_output = None
         context.mark_stage_complete("export_results")
         return context

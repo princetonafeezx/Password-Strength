@@ -34,10 +34,12 @@ def handle_command(args: argparse.Namespace) -> int:
         source="cli",
     )
 
-    print({
-        "format": args.format,
-        "exported": result.exported_output,
-        "summary": result.report,
-    })
+    print(
+        {
+            "format": args.format,
+            "exported": result.exported_output,
+            "summary": result.report,
+        }
+    )
 
     return 0

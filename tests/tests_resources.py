@@ -1,7 +1,9 @@
-from password_strength.resources import load_banned_tokens
-from password_strength.resources import load_common_passwords
-from password_strength.resources import load_keyboard_patterns
-from password_strength.resources import load_policy_preset
+from password_strength.resources import (
+    load_banned_tokens,
+    load_common_passwords,
+    load_keyboard_patterns,
+    load_policy_preset,
+)
 
 
 def test_common_passwords_load() -> None:

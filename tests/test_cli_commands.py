@@ -1,5 +1,4 @@
-from password_strength.cli import build_parser
-from password_strength.cli import main
+from password_strength.cli import build_parser, main
 
 
 def test_audit_command_registers() -> None:

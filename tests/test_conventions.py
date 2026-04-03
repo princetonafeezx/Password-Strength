@@ -6,18 +6,14 @@ def test_conventions_have_rules() -> None:
 
 
 def test_contains_known_rule() -> None:
-    assert DEFAULT_CONVENTIONS.contains_rule(
-        "never print raw passwords by default"
-    ) is True
+    assert DEFAULT_CONVENTIONS.contains_rule("never print raw passwords by default") is True
 
 
 def test_unknown_rule_returns_false() -> None:
-    assert DEFAULT_CONVENTIONS.contains_rule(
-        "auto-upload passwords to cloud storage"
-    ) is False
+    assert DEFAULT_CONVENTIONS.contains_rule("auto-upload passwords to cloud storage") is False
 
 
 def test_rule_matching_is_case_insensitive() -> None:
-    assert DEFAULT_CONVENTIONS.contains_rule(
-        "Use PascalCase for dataclasses and exceptions"
-    ) is True
+    assert (
+        DEFAULT_CONVENTIONS.contains_rule("Use PascalCase for dataclasses and exceptions") is True
+    )

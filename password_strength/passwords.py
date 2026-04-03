@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from password_strength.models import PasswordCandidate, PasswordPolicyResult
+from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordPatternResult
+from password_strength.models import PasswordPolicyResult
+
 
 PIPELINE_STAGES: tuple[str, ...] = (
     "read_input",
@@ -43,7 +46,7 @@ class PipelineContext:
     sanitized_input: Any = None
     parsed_passwords: list[PasswordCandidate] = field(default_factory=list)
     policy_results: list[PasswordPolicyResult] = field(default_factory=list)
-    pattern_results: list[Any] = field(default_factory=list)
+    pattern_results: list[PasswordPatternResult] = field(default_factory=list)
     dictionary_results: list[Any] = field(default_factory=list)
     score_results: list[Any] = field(default_factory=list)
     classified_results: list[Any] = field(default_factory=list)
@@ -128,8 +131,11 @@ class PasswordPipeline:
         return context
 
     def detect_patterns(self, context: PipelineContext) -> PipelineContext:
-        """Run structural and regex-based pattern detection."""
-        context.pattern_results = []
+        """Create placeholder pattern-detection results for parsed passwords."""
+        context.pattern_results = [
+            PasswordPatternResult(candidate=candidate)
+            for candidate in context.parsed_passwords
+        ]
         context.mark_stage_complete("detect_patterns")
         return context
 
@@ -163,6 +169,7 @@ class PasswordPipeline:
             "source": context.source,
             "total_passwords": len(context.parsed_passwords),
             "policy_results_count": len(context.policy_results),
+            "pattern_results_count": len(context.pattern_results),
             "completed_stages": list(context.completed_stages),
         }
         context.mark_stage_complete("build_report")

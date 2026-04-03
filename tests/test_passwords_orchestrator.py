@@ -1,5 +1,9 @@
-from password_strength.models import PasswordCandidate, PasswordPolicyResult
-from password_strength.passwords import PIPELINE_STAGES, PasswordPipeline, run_password_pipeline
+from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordPatternResult
+from password_strength.models import PasswordPolicyResult
+from password_strength.passwords import PIPELINE_STAGES
+from password_strength.passwords import PasswordPipeline
+from password_strength.passwords import run_password_pipeline
 
 
 def test_pipeline_exposes_expected_stage_order() -> None:
@@ -68,7 +72,21 @@ def test_pipeline_creates_policy_results() -> None:
     assert result.policy_results[0].candidate.cleaned_password == "Password1!"
 
 
+def test_pipeline_creates_pattern_results() -> None:
+    result = run_password_pipeline("Password1!", source="cli")
+
+    assert len(result.pattern_results) == 1
+    assert isinstance(result.pattern_results[0], PasswordPatternResult)
+    assert result.pattern_results[0].candidate.cleaned_password == "Password1!"
+
+
 def test_pipeline_report_includes_policy_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
     assert result.report["policy_results_count"] == 2
+
+
+def test_pipeline_report_includes_pattern_result_count() -> None:
+    result = run_password_pipeline(["one", "two"], source="file")
+
+    assert result.report["pattern_results_count"] == 2

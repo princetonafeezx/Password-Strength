@@ -1,4 +1,6 @@
-from password_strength.models import PasswordCandidate, PasswordPolicyResult
+from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordPatternResult
+from password_strength.models import PasswordPolicyResult
 
 
 def test_password_candidate_stores_values() -> None:
@@ -98,3 +100,44 @@ def test_password_policy_result_unique_count_can_be_set() -> None:
 
     assert result.unique_character_count == 4
     assert result.character_class_count == 4
+
+
+def test_password_pattern_result_defaults() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Example123!",
+        cleaned_password="Example123!",
+    )
+    result = PasswordPatternResult(candidate=candidate)
+
+    assert result.candidate is candidate
+    assert result.has_pattern_findings is False
+    assert result.pattern_hits == []
+    assert result.warnings == []
+
+
+def test_password_pattern_result_tracks_hits_and_warnings() -> None:
+    candidate = PasswordCandidate(
+        raw_password="abc123",
+        cleaned_password="abc123",
+    )
+    result = PasswordPatternResult(candidate=candidate)
+
+    result.sequential_characters_detected = True
+    result.add_pattern_hit("SEQUENTIAL_CHARACTERS")
+    result.add_warning("Detected predictable ascending sequence.")
+
+    assert result.has_pattern_findings is True
+    assert result.pattern_hits == ["SEQUENTIAL_CHARACTERS"]
+    assert result.warnings == ["Detected predictable ascending sequence."]
+
+
+def test_password_pattern_result_tracks_weak_tokens() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Summer2025!",
+        cleaned_password="Summer2025!",
+    )
+    result = PasswordPatternResult(candidate=candidate)
+
+    result.add_weak_token("summer")
+    assert result.weak_tokens_detected == ["summer"]
+    assert result.has_pattern_findings is True

@@ -66,3 +66,54 @@ class PasswordPolicyResult:
     def add_passed_rule(self, rule_name: str) -> None:
         """Record a passed policy rule."""
         self.passed_rules.append(rule_name)
+
+
+@dataclass(slots=True)
+class PasswordPatternResult:
+    """Stores pattern-detection findings for one password candidate."""
+
+    candidate: PasswordCandidate
+    repeated_characters_detected: bool = False
+    repeated_chunks_detected: bool = False
+    sequential_characters_detected: bool = False
+    reverse_sequence_detected: bool = False
+    keyboard_pattern_detected: bool = False
+    year_pattern_detected: bool = False
+    date_pattern_detected: bool = False
+    email_like_detected: bool = False
+    phone_like_detected: bool = False
+    weak_tokens_detected: list[str] = field(default_factory=list)
+    pattern_hits: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def has_pattern_findings(self) -> bool:
+        """Return True if any pattern or weak-token finding exists."""
+        return any(
+            (
+                self.repeated_characters_detected,
+                self.repeated_chunks_detected,
+                self.sequential_characters_detected,
+                self.reverse_sequence_detected,
+                self.keyboard_pattern_detected,
+                self.year_pattern_detected,
+                self.date_pattern_detected,
+                self.email_like_detected,
+                self.phone_like_detected,
+                len(self.weak_tokens_detected) > 0,
+                len(self.pattern_hits) > 0,
+                len(self.warnings) > 0,
+            )
+        )
+
+    def add_pattern_hit(self, hit_name: str) -> None:
+        """Record a named pattern hit."""
+        self.pattern_hits.append(hit_name)
+
+    def add_warning(self, warning_text: str) -> None:
+        """Record a warning message for the candidate."""
+        self.warnings.append(warning_text)
+
+    def add_weak_token(self, token: str) -> None:
+        """Record a weak token detected within the candidate."""
+        self.weak_tokens_detected.append(token)

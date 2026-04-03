@@ -206,3 +206,27 @@ class PasswordAuditRecord:
     def add_remediation_suggestion(self, suggestion: str) -> None:
         """Record a remediation suggestion on the audit record."""
         self.remediation_suggestions.append(suggestion)
+
+
+@dataclass(slots=True)
+class PasswordRunReport:
+    """Run-level summary for a password audit execution."""
+
+    source: str
+    total_passwords: int = 0
+    compliant_passwords: int = 0
+    non_compliant_passwords: int = 0
+    weak_passwords: int = 0
+    suspicious_passwords: int = 0
+    duplicate_passwords: int = 0
+    warning_count: int = 0
+    policy_results_count: int = 0
+    pattern_results_count: int = 0
+    score_results_count: int = 0
+    classified_results_count: int = 0
+    completed_stages: list[str] = field(default_factory=list)
+    exit_code: int = 0
+
+    def add_completed_stage(self, stage_name: str) -> None:
+        """Record a completed stage on the run report."""
+        self.completed_stages.append(stage_name)

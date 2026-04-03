@@ -2,6 +2,7 @@ from password_strength.models import PasswordAuditRecord
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordRunReport
 from password_strength.models import PasswordScoreResult
 
 
@@ -248,3 +249,20 @@ def test_password_audit_record_tracks_findings_warnings_and_suggestions() -> Non
     assert record.findings == ["Sequential pattern detected."]
     assert record.warnings == ["Password is highly predictable."]
     assert record.remediation_suggestions == ["Increase length and avoid sequences."]
+
+
+def test_password_run_report_defaults() -> None:
+    report = PasswordRunReport(source="cli")
+
+    assert report.source == "cli"
+    assert report.total_passwords == 0
+    assert report.exit_code == 0
+    assert report.completed_stages == []
+
+
+def test_password_run_report_tracks_completed_stages() -> None:
+    report = PasswordRunReport(source="file")
+    report.add_completed_stage("read_input")
+    report.add_completed_stage("sanitize_input")
+
+    assert report.completed_stages == ["read_input", "sanitize_input"]

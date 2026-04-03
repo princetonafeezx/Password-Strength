@@ -2,6 +2,7 @@ from password_strength.models import PasswordAuditRecord
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordRunReport
 from password_strength.models import PasswordScoreResult
 from password_strength.passwords import PIPELINE_STAGES
 from password_strength.passwords import PasswordPipeline
@@ -51,14 +52,16 @@ def test_pipeline_handles_list_input() -> None:
     assert len(result.parsed_passwords) == 2
     assert result.parsed_passwords[0].cleaned_password == "one"
     assert result.parsed_passwords[1].cleaned_password == "two"
-    assert result.report["total_passwords"] == 2
+    assert result.report is not None
+    assert result.report.total_passwords == 2
 
 
 def test_pipeline_builds_summary_report() -> None:
     result = run_password_pipeline("Password1!", source="stdin")
 
-    assert result.report["source"] == "stdin"
-    assert result.report["total_passwords"] == 1
+    assert result.report is not None
+    assert result.report.source == "stdin"
+    assert result.report.total_passwords == 1
     assert "build_report" in result.completed_stages
 
 
@@ -108,25 +111,37 @@ def test_pipeline_creates_classified_audit_records() -> None:
     assert result.classified_results[0].masked_password == "Pa*****1!"
 
 
+def test_pipeline_builds_password_run_report() -> None:
+    result = run_password_pipeline("Password1!", source="cli")
+
+    assert result.report is not None
+    assert isinstance(result.report, PasswordRunReport)
+    assert result.report.source == "cli"
+
+
 def test_pipeline_report_includes_policy_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
-    assert result.report["policy_results_count"] == 2
+    assert result.report is not None
+    assert result.report.policy_results_count == 2
 
 
 def test_pipeline_report_includes_pattern_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
-    assert result.report["pattern_results_count"] == 2
+    assert result.report is not None
+    assert result.report.pattern_results_count == 2
 
 
 def test_pipeline_report_includes_score_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
-    assert result.report["score_results_count"] == 2
+    assert result.report is not None
+    assert result.report.score_results_count == 2
 
 
 def test_pipeline_report_includes_classified_result_count() -> None:
     result = run_password_pipeline(["one", "two"], source="file")
 
-    assert result.report["classified_results_count"] == 2
+    assert result.report is not None
+    assert result.report.classified_results_count == 2

@@ -9,6 +9,7 @@ from password_strength.models import PasswordAuditRecord
 from password_strength.models import PasswordCandidate
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordRunReport
 from password_strength.models import PasswordScoreResult
 
 
@@ -51,7 +52,7 @@ class PipelineContext:
     score_results: list[PasswordScoreResult] = field(default_factory=list)
     classified_results: list[PasswordAuditRecord] = field(default_factory=list)
     exported_output: Any = None
-    report: Any = None
+    report: PasswordRunReport | None = None
     completed_stages: list[str] = field(default_factory=list)
 
     def mark_stage_complete(self, stage_name: str) -> None:
@@ -183,15 +184,44 @@ class PasswordPipeline:
 
     def build_report(self, context: PipelineContext) -> PipelineContext:
         """Build the final run report returned by the orchestration layer."""
-        context.report = {
-            "source": context.source,
-            "total_passwords": len(context.parsed_passwords),
-            "policy_results_count": len(context.policy_results),
-            "pattern_results_count": len(context.pattern_results),
-            "score_results_count": len(context.score_results),
-            "classified_results_count": len(context.classified_results),
-            "completed_stages": list(context.completed_stages),
-        }
+        total_passwords = len(context.parsed_passwords)
+        policy_results_count = len(context.policy_results)
+        pattern_results_count = len(context.pattern_results)
+        score_results_count = len(context.score_results)
+        classified_results_count = len(context.classified_results)
+
+        compliant_passwords = sum(
+            1 for record in context.classified_results if record.policy_passed
+        )
+        non_compliant_passwords = classified_results_count - compliant_passwords
+        weak_passwords = sum(
+            1
+            for record in context.classified_results
+            if record.strength_rating.lower() in {"very weak", "weak"}
+        )
+        suspicious_passwords = sum(
+            1
+            for record in context.classified_results
+            if record.pattern_result.has_pattern_findings
+        )
+        warning_count = sum(len(record.warnings) for record in context.classified_results)
+
+        context.report = PasswordRunReport(
+            source=context.source,
+            total_passwords=total_passwords,
+            compliant_passwords=compliant_passwords,
+            non_compliant_passwords=non_compliant_passwords,
+            weak_passwords=weak_passwords,
+            suspicious_passwords=suspicious_passwords,
+            duplicate_passwords=0,
+            warning_count=warning_count,
+            policy_results_count=policy_results_count,
+            pattern_results_count=pattern_results_count,
+            score_results_count=score_results_count,
+            classified_results_count=classified_results_count,
+            completed_stages=list(context.completed_stages),
+            exit_code=0,
+        )
         context.mark_stage_complete("build_report")
         return context
 

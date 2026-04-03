@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from password_strength.exceptions import PasswordConfigError
 
 @dataclass(slots=True)
 class PasswordCandidate:
@@ -483,3 +484,82 @@ class PasswordRunReport:
             "completed_stages": list(self.completed_stages),
             "exit_code": self.exit_code,
         }
+
+@dataclass(slots=True)
+class PasswordConfig:
+    """Configuration model for password auditing behavior."""
+
+    policy_name: str = "default"
+    min_length: int = 12
+    max_length: int = 128
+    require_lowercase: bool = True
+    require_uppercase: bool = True
+    require_digits: bool = True
+    require_special: bool = True
+    min_unique_characters: int = 6
+    min_character_classes: int = 3
+    allow_spaces: bool = False
+    passphrase_mode: bool = False
+    check_common_passwords: bool = True
+    check_banned_tokens: bool = True
+    check_keyboard_patterns: bool = True
+    check_sequences: bool = True
+    check_reverse_sequences: bool = True
+    score_threshold: int = 60
+    mask_output_by_default: bool = True
+    allow_raw_output: bool = False
+    output_format: str = "json"
+
+    def validate(self) -> None:
+        """Validate configuration values and raise PasswordConfigError on invalid input."""
+        if self.min_length < 1:
+            raise PasswordConfigError("min_length must be at least 1")
+        if self.max_length < self.min_length:
+            raise PasswordConfigError(
+                "max_length must be greater than or equal to min_length"
+            )
+        if self.min_unique_characters < 1:
+            raise PasswordConfigError("min_unique_characters must be at least 1")
+        if self.min_unique_characters > self.max_length:
+            raise PasswordConfigError("min_unique_characters cannot exceed max_length")
+        if self.min_character_classes < 1 or self.min_character_classes > 4:
+            raise PasswordConfigError("min_character_classes must be between 1 and 4")
+        if self.score_threshold < 0 or self.score_threshold > 100:
+            raise PasswordConfigError("score_threshold must be between 0 and 100")
+        if self.output_format not in {"json", "jsonl", "csv"}:
+            raise PasswordConfigError(
+                "output_format must be one of: json, jsonl, csv"
+            )
+        if self.allow_raw_output and self.mask_output_by_default:
+            raise PasswordConfigError(
+                "allow_raw_output cannot be True while mask_output_by_default is True"
+            )
+        if self.passphrase_mode and self.require_special:
+            raise PasswordConfigError(
+                "passphrase_mode cannot require special characters by default"
+            )
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a serializable dictionary representation of the config."""
+        return {
+            "policy_name": self.policy_name,
+            "min_length": self.min_length,
+            "max_length": self.max_length,
+            "require_lowercase": self.require_lowercase,
+            "require_uppercase": self.require_uppercase,
+            "require_digits": self.require_digits,
+            "require_special": self.require_special,
+            "min_unique_characters": self.min_unique_characters,
+            "min_character_classes": self.min_character_classes,
+            "allow_spaces": self.allow_spaces,
+            "passphrase_mode": self.passphrase_mode,
+            "check_common_passwords": self.check_common_passwords,
+            "check_banned_tokens": self.check_banned_tokens,
+            "check_keyboard_patterns": self.check_keyboard_patterns,
+            "check_sequences": self.check_sequences,
+            "check_reverse_sequences": self.check_reverse_sequences,
+            "score_threshold": self.score_threshold,
+            "mask_output_by_default": self.mask_output_by_default,
+            "allow_raw_output": self.allow_raw_output,
+            "output_format": self.output_format,
+        

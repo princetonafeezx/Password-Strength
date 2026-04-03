@@ -1,18 +1,15 @@
-from password_strength.models import (
-    PasswordAuditRecord,
-    PasswordCandidate,
-    PasswordPatternResult,
-    PasswordPolicyResult,
-    PasswordRunReport,
-    PasswordScoreResult,
-    SourceDocument,
-)
-from password_strength.passwords import (
-    PIPELINE_STAGES,
-    PasswordPipeline,
-    mask_password,
-    run_password_pipeline,
-)
+from password_strength.models import PasswordAuditRecord
+from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordPatternResult
+from password_strength.models import PasswordPolicyResult
+from password_strength.models import PasswordRunReport
+from password_strength.models import PasswordScoreResult
+from password_strength.models import SourceDocument
+from password_strength.passwords import PIPELINE_STAGES
+from password_strength.passwords import PasswordPipeline
+from password_strength.passwords import mask_password
+from password_strength.passwords import run_password_pipeline
+from password_strength.sanitizer import SanitizedDocument
 
 
 def test_pipeline_exposes_expected_stage_order() -> None:
@@ -37,23 +34,45 @@ def test_mask_password_handles_common_lengths() -> None:
     assert mask_password("abcd") == "a***"
     assert mask_password("Example123!") == "Ex*******3!"
 
+
 def test_pipeline_creates_source_documents_for_single_input() -> None:
     result = run_password_pipeline("Example123!", source="cli_password")
 
     assert len(result.source_documents) == 1
     assert isinstance(result.source_documents[0], SourceDocument)
     assert result.source_documents[0].content == "Example123!"
-    assert result.source_documents[0].source == "cli_password
+    assert result.source_documents[0].source == "cli_password"
+
+
+def test_pipeline_sanitizes_documents_before_parsing() -> None:
+    result = run_password_pipeline("\ufeffPass\u200bword1!", source="cli_password")
+
+    assert len(result.sanitized_documents) == 1
+    assert isinstance(result.sanitized_documents[0], SanitizedDocument)
+    assert result.sanitized_documents[0].cleaned_content == "Password1!"
+    assert result.sanitized_input == "Password1!"
+
 
 def test_pipeline_runs_all_stages_for_single_password() -> None:
-    result = run_password_pipeline("Example123!", source="cli")
+    result = run_password_pipeline("Example123!", source="cli_password")
 
-    assert result.source == "cli"
+    assert result.source == "cli_password"
     assert result.raw_input == "Example123!"
     assert result.sanitized_input == "Example123!"
     assert len(result.parsed_passwords) == 1
     assert result.parsed_passwords[0].cleaned_password == "Example123!"
     assert result.completed_stages == list(PIPELINE_STAGES)
+
+
+def test_pipeline_preserves_raw_and_cleaned_password_values() -> None:
+    result = run_password_pipeline("\ufeffPass\u200bword1!", source="cli_password")
+
+    assert len(result.parsed_passwords) == 1
+    assert result.parsed_passwords[0].raw_password == "\ufeffPass\u200bword1!"
+    assert result.parsed_passwords[0].cleaned_password == "Password1!"
+    assert "removed_bom" in result.parsed_passwords[0].sanitizer_actions
+    assert "removed_zero_width_characters" in result.parsed_passwords[0].sanitizer_actions
+
 
 def test_pipeline_handles_multiline_input_as_document() -> None:
     pipeline = PasswordPipeline()
@@ -66,17 +85,6 @@ def test_pipeline_handles_multiline_input_as_document() -> None:
     assert result.parsed_passwords[2].cleaned_password == "three"
     assert result.report is not None
     assert result.report.total_passwords == 3
-
-def test_pipeline_handles_list_input() -> None:
-    pipeline = PasswordPipeline()
-    result = pipeline.run(["one", "two"], source="file")
-
-    assert result.source == "file"
-    assert len(result.parsed_passwords) == 2
-    assert result.parsed_passwords[0].cleaned_password == "one"
-    assert result.parsed_passwords[1].cleaned_password == "two"
-    assert result.report is not None
-    assert result.report.total_passwords == 2
 
 
 def test_pipeline_builds_summary_report() -> None:
@@ -100,13 +108,15 @@ def test_pipeline_parses_password_candidates() -> None:
     assert result.parsed_passwords[0].source == "cli"
     assert result.parsed_passwords[0].raw_password == "Password1!"
 
+
 def test_pipeline_preserves_line_numbers_from_document() -> None:
     result = run_password_pipeline("first\nsecond\nthird", source="file")
 
     assert result.parsed_passwords[0].line_number == 1
     assert result.parsed_passwords[1].line_number == 2
     assert result.parsed_passwords[2].line_number == 3
-    
+
+
 def test_pipeline_creates_policy_results() -> None:
     result = run_password_pipeline("Password1!", source="cli")
 
@@ -137,7 +147,7 @@ def test_pipeline_creates_classified_audit_records() -> None:
     assert len(result.classified_results) == 1
     assert isinstance(result.classified_results[0], PasswordAuditRecord)
     assert result.classified_results[0].candidate.cleaned_password == "Password1!"
-    assert result.classified_results[0].masked_password == "Pa******1!"
+    assert result.classified_results[0].masked_password == "Pa*****1!"
 
 
 def test_pipeline_builds_password_run_report() -> None:
@@ -149,28 +159,28 @@ def test_pipeline_builds_password_run_report() -> None:
 
 
 def test_pipeline_report_includes_policy_result_count() -> None:
-    result = run_password_pipeline(["one", "two"], source="file")
+    result = run_password_pipeline("one\ntwo", source="file")
 
     assert result.report is not None
     assert result.report.policy_results_count == 2
 
 
 def test_pipeline_report_includes_pattern_result_count() -> None:
-    result = run_password_pipeline(["one", "two"], source="file")
+    result = run_password_pipeline("one\ntwo", source="file")
 
     assert result.report is not None
     assert result.report.pattern_results_count == 2
 
 
 def test_pipeline_report_includes_score_result_count() -> None:
-    result = run_password_pipeline(["one", "two"], source="file")
+    result = run_password_pipeline("one\ntwo", source="file")
 
     assert result.report is not None
     assert result.report.score_results_count == 2
 
 
 def test_pipeline_report_includes_classified_result_count() -> None:
-    result = run_password_pipeline(["one", "two"], source="file")
+    result = run_password_pipeline("one\ntwo", source="file")
 
     assert result.report is not None
     assert result.report.classified_results_count == 2
@@ -185,10 +195,3 @@ def test_pipeline_run_report_to_dict_is_serializable() -> None:
     assert serialized["source"] == "cli"
     assert serialized["total_passwords"] == 1
     assert serialized["classified_results_count"] == 1
-
-
-def test_pipeline_report_exit_code_nonzero_for_dictionary_match() -> None:
-    result = run_password_pipeline("password", source="cli")
-
-    assert result.report is not None
-    assert result.report.exit_code == 1

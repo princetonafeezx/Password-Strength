@@ -449,3 +449,96 @@ def test_password_run_report_to_dict() -> None:
     assert serialized["total_passwords"] == 2
     assert serialized["classified_results_count"] == 2
     assert serialized["exit_code"] == 0
+
+    def test_password_config_defaults() -> None:
+    config = PasswordConfig()
+
+    assert config.policy_name == "default"
+    assert config.min_length == 12
+    assert config.max_length == 128
+    assert config.check_common_passwords is True
+    assert config.mask_output_by_default is True
+    assert config.output_format == "json"
+
+
+def test_password_config_to_dict() -> None:
+    config = PasswordConfig(
+        policy_name="strict",
+        min_length=16,
+        score_threshold=75,
+        output_format="csv",
+    )
+
+    serialized = config.to_dict()
+
+    assert serialized["policy_name"] == "strict"
+    assert serialized["min_length"] == 16
+    assert serialized["score_threshold"] == 75
+    assert serialized["output_format"] == "csv"
+
+
+def test_password_config_validate_accepts_defaults() -> None:
+    config = PasswordConfig()
+    config.validate()
+
+
+def test_password_config_validate_rejects_invalid_min_length() -> None:
+    config = PasswordConfig(min_length=0)
+
+    try:
+        config.validate()
+        assert False, "Expected ValueError for invalid min_length"
+    except ValueError as exc:
+        assert str(exc) == "min_length must be at least 1"
+
+
+def test_password_config_validate_rejects_invalid_max_length() -> None:
+    config = PasswordConfig(min_length=12, max_length=8)
+
+    try:
+        config.validate()
+        assert False, "Expected ValueError for invalid max_length"
+    except ValueError as exc:
+        assert str(exc) == "max_length must be greater than or equal to min_length"
+
+
+def test_password_config_validate_rejects_invalid_output_format() -> None:
+    config = PasswordConfig(output_format="xml")
+
+    try:
+        config.validate()
+        assert False, "Expected ValueError for invalid output_format"
+    except ValueError as exc:
+        assert str(exc) == "output_format must be one of: json, jsonl, csv"
+
+
+def test_password_config_validate_rejects_conflicting_output_flags() -> None:
+    config = PasswordConfig(
+        mask_output_by_default=True,
+        allow_raw_output=True,
+    )
+
+    try:
+        config.validate()
+        assert False, "Expected ValueError for conflicting output flags"
+    except ValueError as exc:
+        assert (
+            str(exc)
+            == "allow_raw_output cannot be True while mask_output_by_default is True"
+        )
+
+
+def test_password_config_validate_rejects_passphrase_special_requirement() -> None:
+    config = PasswordConfig(
+        passphrase_mode=True,
+        require_special=True,
+    )
+
+    try:
+        config.validate()
+        assert False, "Expected ValueError for passphrase/special conflict"
+    except ValueError as exc:
+        assert (
+            str(exc)
+            == "passphrase_mode cannot require special characters by default"
+        )

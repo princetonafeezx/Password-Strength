@@ -145,3 +145,14 @@ def test_pipeline_report_includes_classified_result_count() -> None:
 
     assert result.report is not None
     assert result.report.classified_results_count == 2
+
+
+def test_pipeline_run_report_to_dict_is_serializable() -> None:
+    result = run_password_pipeline("Password1!", source="cli")
+
+    assert result.report is not None
+    serialized = result.report.to_dict()
+
+    assert serialized["source"] == "cli"
+    assert serialized["total_passwords"] == 1
+    assert serialized["classified_results_count"] == 1

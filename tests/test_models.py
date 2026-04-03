@@ -62,6 +62,23 @@ def test_password_candidate_can_store_source_metadata() -> None:
     assert candidate.source_line == "Password1!"
 
 
+def test_password_candidate_to_dict() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Password1!",
+        cleaned_password="Password1!",
+        source="cli",
+        sanitizer_actions=["none"],
+    )
+
+    result = candidate.to_dict()
+
+    assert result["raw_password"] == "Password1!"
+    assert result["cleaned_password"] == "Password1!"
+    assert result["source"] == "cli"
+    assert result["sanitizer_actions"] == ["none"]
+    assert result["original_length"] == 10
+
+
 def test_password_policy_result_defaults() -> None:
     candidate = PasswordCandidate(
         raw_password="Example123!",
@@ -105,6 +122,21 @@ def test_password_policy_result_unique_count_can_be_set() -> None:
     assert result.character_class_count == 4
 
 
+def test_password_policy_result_to_dict() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Example123!",
+        cleaned_password="Example123!",
+    )
+    result = PasswordPolicyResult(candidate=candidate)
+    result.add_passed_rule("min_length")
+
+    serialized = result.to_dict()
+
+    assert serialized["candidate"]["cleaned_password"] == "Example123!"
+    assert serialized["passed_rules"] == ["min_length"]
+    assert serialized["policy_passed"] is True
+
+
 def test_password_pattern_result_defaults() -> None:
     candidate = PasswordCandidate(
         raw_password="Example123!",
@@ -144,6 +176,21 @@ def test_password_pattern_result_tracks_weak_tokens() -> None:
     result.add_weak_token("summer")
     assert result.weak_tokens_detected == ["summer"]
     assert result.has_pattern_findings is True
+
+
+def test_password_pattern_result_to_dict() -> None:
+    candidate = PasswordCandidate(
+        raw_password="abc123",
+        cleaned_password="abc123",
+    )
+    result = PasswordPatternResult(candidate=candidate)
+    result.add_pattern_hit("SEQUENTIAL_CHARACTERS")
+
+    serialized = result.to_dict()
+
+    assert serialized["candidate"]["cleaned_password"] == "abc123"
+    assert serialized["pattern_hits"] == ["SEQUENTIAL_CHARACTERS"]
+    assert serialized["has_pattern_findings"] is True
 
 
 def test_password_score_result_defaults() -> None:
@@ -194,6 +241,24 @@ def test_password_score_result_totals() -> None:
 
     assert result.total_penalty == 50
     assert result.total_bonus == 12
+
+
+def test_password_score_result_to_dict() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Example123!",
+        cleaned_password="Example123!",
+    )
+    result = PasswordScoreResult(
+        candidate=candidate,
+        final_score=80,
+        strength_label="Strong",
+    )
+
+    serialized = result.to_dict()
+
+    assert serialized["candidate"]["cleaned_password"] == "Example123!"
+    assert serialized["final_score"] == 80
+    assert serialized["strength_label"] == "Strong"
 
 
 def test_password_audit_record_defaults_and_properties() -> None:
@@ -251,6 +316,35 @@ def test_password_audit_record_tracks_findings_warnings_and_suggestions() -> Non
     assert record.remediation_suggestions == ["Increase length and avoid sequences."]
 
 
+def test_password_audit_record_to_dict() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Example123!",
+        cleaned_password="Example123!",
+    )
+    policy_result = PasswordPolicyResult(candidate=candidate)
+    pattern_result = PasswordPatternResult(candidate=candidate)
+    score_result = PasswordScoreResult(
+        candidate=candidate,
+        final_score=72,
+        strength_label="Strong",
+    )
+
+    record = PasswordAuditRecord(
+        candidate=candidate,
+        policy_result=policy_result,
+        pattern_result=pattern_result,
+        score_result=score_result,
+        masked_password="Ex*******!",
+    )
+
+    serialized = record.to_dict()
+
+    assert serialized["candidate"]["cleaned_password"] == "Example123!"
+    assert serialized["masked_password"] == "Ex*******!"
+    assert serialized["score"] == 72
+    assert serialized["strength_rating"] == "Strong"
+
+
 def test_password_run_report_defaults() -> None:
     report = PasswordRunReport(source="cli")
 
@@ -266,3 +360,19 @@ def test_password_run_report_tracks_completed_stages() -> None:
     report.add_completed_stage("sanitize_input")
 
     assert report.completed_stages == ["read_input", "sanitize_input"]
+
+
+def test_password_run_report_to_dict() -> None:
+    report = PasswordRunReport(
+        source="cli",
+        total_passwords=2,
+        classified_results_count=2,
+        exit_code=0,
+    )
+
+    serialized = report.to_dict()
+
+    assert serialized["source"] == "cli"
+    assert serialized["total_passwords"] == 2
+    assert serialized["classified_results_count"] == 2
+    assert serialized["exit_code"] == 0

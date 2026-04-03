@@ -1,12 +1,38 @@
 from password_strength.models import (
     PasswordAuditRecord,
     PasswordCandidate,
+    PasswordConfig,
     PasswordPatternResult,
     PasswordPolicyResult,
     PasswordRunReport,
     PasswordScoreResult,
 )
 
+def test_password_config_defaults() -> None:
+    config = PasswordConfig()
+
+    assert config.policy_name == "default"
+    assert config.min_length == 12
+    assert config.max_length == 128
+    assert config.check_common_passwords is True
+    assert config.mask_output_by_default is True
+    assert config.output_format == "json"
+
+
+def test_password_config_to_dict() -> None:
+    config = PasswordConfig(
+        policy_name="strict",
+        min_length=16,
+        score_threshold=75,
+        output_format="csv",
+    )
+
+    serialized = config.to_dict()
+
+    assert serialized["policy_name"] == "strict"
+    assert serialized["min_length"] == 16
+    assert serialized["score_threshold"] == 75
+    assert serialized["output_format"] == "csv"
 
 def test_password_candidate_stores_values() -> None:
     candidate = PasswordCandidate(

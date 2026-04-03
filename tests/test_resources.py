@@ -2,9 +2,10 @@ from password_strength.resources import (
     load_banned_tokens,
     load_common_passwords,
     load_keyboard_patterns,
+    load_password_config,
     load_policy_preset,
 )
-
+from password_strength.models import PasswordConfig
 
 def test_common_passwords_load() -> None:
     values = load_common_passwords()
@@ -35,3 +36,20 @@ def test_strict_policy_loads() -> None:
     policy = load_policy_preset("strict")
     assert policy["policy_name"] == "strict"
     assert policy["min_length"] == 16
+
+def test_password_config_loads_from_default_policy() -> None:
+    config = load_password_config("default")
+
+    assert isinstance(config, PasswordConfig)
+    assert config.policy_name == "default"
+    assert config.min_length == 12
+    assert config.require_uppercase is True
+
+
+def test_password_config_loads_from_strict_policy() -> None:
+    config = load_password_config("strict")
+
+    assert isinstance(config, PasswordConfig)
+    assert config.policy_name == "strict"
+    assert config.min_length == 16
+    assert config.min_character_classes == 4

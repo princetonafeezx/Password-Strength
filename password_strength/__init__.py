@@ -11,6 +11,8 @@ __all__ = [
     "feedback",
     "exporters",
     "exceptions",
+    "scope",
+    "conventions",
 ]
 
 __version__ = "0.1.0"

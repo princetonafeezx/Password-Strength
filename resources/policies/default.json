@@ -1,0 +1,14 @@
+{
+    "policy_name": "default",
+    "description": "Balanced default policy for general password auditing.",
+    "min_length": 12,
+    "max_length": 128,
+    "require_lowercase": true,
+    "require_uppercase": true,
+    "require_digits": true,
+    "require_special": true,
+    "min_unique_characters": 6,
+    "min_character_classes": 3,
+    "allow_spaces": false,
+    "passphrase_mode": false
+  }

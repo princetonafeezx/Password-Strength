@@ -13,6 +13,7 @@ __all__ = [
     "exceptions",
     "scope",
     "conventions",
+    "resources",
 ]
 
 __version__ = "0.1.0"

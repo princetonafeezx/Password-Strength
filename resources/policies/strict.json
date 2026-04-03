@@ -1,0 +1,14 @@
+{
+    "policy_name": "strict",
+    "description": "Stricter policy for privileged or high-risk accounts.",
+    "min_length": 16,
+    "max_length": 128,
+    "require_lowercase": true,
+    "require_uppercase": true,
+    "require_digits": true,
+    "require_special": true,
+    "min_unique_characters": 8,
+    "min_character_classes": 4,
+    "allow_spaces": false,
+    "passphrase_mode": false
+  }

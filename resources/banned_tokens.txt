@@ -1,0 +1,10 @@
+company
+internal
+admin
+root
+test
+demo
+default
+changeme
+password
+secret

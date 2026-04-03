@@ -1,4 +1,4 @@
-from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordCandidate, PasswordPolicyResult
 from password_strength.passwords import PIPELINE_STAGES, PasswordPipeline, run_password_pipeline
 
 
@@ -58,3 +58,17 @@ def test_pipeline_parses_password_candidates() -> None:
     assert isinstance(result.parsed_passwords[0], PasswordCandidate)
     assert result.parsed_passwords[0].source == "cli"
     assert result.parsed_passwords[0].raw_password == "Password1!"
+
+
+def test_pipeline_creates_policy_results() -> None:
+    result = run_password_pipeline("Password1!", source="cli")
+
+    assert len(result.policy_results) == 1
+    assert isinstance(result.policy_results[0], PasswordPolicyResult)
+    assert result.policy_results[0].candidate.cleaned_password == "Password1!"
+
+
+def test_pipeline_report_includes_policy_result_count() -> None:
+    result = run_password_pipeline(["one", "two"], source="file")
+
+    assert result.report["policy_results_count"] == 2

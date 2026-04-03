@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordCandidate, PasswordPolicyResult
 
 PIPELINE_STAGES: tuple[str, ...] = (
     "read_input",
@@ -42,7 +42,7 @@ class PipelineContext:
     raw_input: Any = None
     sanitized_input: Any = None
     parsed_passwords: list[PasswordCandidate] = field(default_factory=list)
-    policy_results: list[Any] = field(default_factory=list)
+    policy_results: list[PasswordPolicyResult] = field(default_factory=list)
     pattern_results: list[Any] = field(default_factory=list)
     dictionary_results: list[Any] = field(default_factory=list)
     score_results: list[Any] = field(default_factory=list)
@@ -57,27 +57,7 @@ class PipelineContext:
 
 
 class PasswordPipeline:
-    """Coordinates the end-to-end password auditing pipeline.
-
-    Execution order:
-        1. read_input
-        2. sanitize_input
-        3. parse_passwords
-        4. validate_policy
-        5. detect_patterns
-        6. check_dictionary
-        7. score_passwords
-        8. classify_results
-        9. export_results
-        10. build_report
-
-    Design intent:
-        - Keep orchestration in one place.
-        - Keep stage ordering stable.
-        - Let each stage own one major responsibility.
-        - Allow future implementations to replace placeholders without
-          changing the public pipeline contract.
-    """
+    """Coordinates the end-to-end password auditing pipeline."""
 
     def __init__(self) -> None:
         self.stage_order = PIPELINE_STAGES
@@ -136,8 +116,14 @@ class PasswordPipeline:
         return context
 
     def validate_policy(self, context: PipelineContext) -> PipelineContext:
-        """Run policy validation for parsed passwords."""
-        context.policy_results = []
+        """Create placeholder policy results for parsed passwords."""
+        context.policy_results = [
+            PasswordPolicyResult(
+                candidate=candidate,
+                unique_character_count=len(set(candidate.cleaned_password)),
+            )
+            for candidate in context.parsed_passwords
+        ]
         context.mark_stage_complete("validate_policy")
         return context
 
@@ -176,6 +162,7 @@ class PasswordPipeline:
         context.report = {
             "source": context.source,
             "total_passwords": len(context.parsed_passwords),
+            "policy_results_count": len(context.policy_results),
             "completed_stages": list(context.completed_stages),
         }
         context.mark_stage_complete("build_report")

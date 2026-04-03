@@ -503,3 +503,70 @@ Return different codes for success, warnings, input failure, config errors, and 
 Cover sanitization integration, policy checks, regex detection, dictionary checks, scoring, exports, CLI behavior, and failure cases so the module is truly production-ready.
 
 """
+
+# Password Strength Architect
+
+Day 3 — The Password Strength Architect  
+App: Password Policy Auditor
+
+## Overview
+
+Password Strength Architect is a Python CLI application for auditing password strength against layered security rules. It is designed to grow into an enterprise-grade password analysis tool with support for sanitization, policy validation, weak-pattern detection, dictionary intelligence, scoring, explainable feedback, exports, and batch auditing.
+
+The long-term goal is to build a professional password auditing workflow that can:
+
+- accept a single password or many passwords
+- sanitize unsafe or malformed input
+- validate policy compliance
+- detect weak structural patterns
+- identify banned and common passwords
+- estimate entropy
+- score strength with explainable reasoning
+- export structured reports for automation and audit workflows
+
+## Current project status
+
+The repository currently includes:
+
+- installable Python package setup
+- root CLI entrypoint
+- dedicated command modules for `audit`, `validate`, and `export`
+- a central password pipeline orchestration module
+- built-in resource files for password intelligence
+- project scope and conventions documents
+- early test coverage for package structure and command routing
+
+At this stage, the command flow and package structure are in place, while the deeper validation, scoring, and export logic will be added incrementally across future commits.
+
+## Package structure
+
+```text
+password_strength/
+├── __init__.py
+├── cli.py
+├── conventions.py
+├── dictionary.py
+├── exceptions.py
+├── exporters.py
+├── feedback.py
+├── models.py
+├── passwords.py
+├── patterns.py
+├── policy.py
+├── resources.py
+├── scope.py
+└── cli/
+    ├── __init__.py
+    ├── password_audit.py
+    ├── password_export.py
+    └── password_validate.py
+
+resources/
+├── banned_tokens.txt
+├── common_passwords.txt
+├── keyboard_patterns.txt
+└── policies/
+    ├── default.json
+    └── strict.json
+
+tests/

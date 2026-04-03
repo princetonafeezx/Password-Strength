@@ -5,6 +5,7 @@ from password_strength.models import (
     PasswordPolicyResult,
     PasswordRunReport,
     PasswordScoreResult,
+    SourceDocument,
 )
 from password_strength.passwords import (
     PIPELINE_STAGES,
@@ -36,6 +37,13 @@ def test_mask_password_handles_common_lengths() -> None:
     assert mask_password("abcd") == "a***"
     assert mask_password("Example123!") == "Ex*******3!"
 
+def test_pipeline_creates_source_documents_for_single_input() -> None:
+    result = run_password_pipeline("Example123!", source="cli_password")
+
+    assert len(result.source_documents) == 1
+    assert isinstance(result.source_documents[0], SourceDocument)
+    assert result.source_documents[0].content == "Example123!"
+    assert result.source_documents[0].source == "cli_password
 
 def test_pipeline_runs_all_stages_for_single_password() -> None:
     result = run_password_pipeline("Example123!", source="cli")
@@ -47,6 +55,17 @@ def test_pipeline_runs_all_stages_for_single_password() -> None:
     assert result.parsed_passwords[0].cleaned_password == "Example123!"
     assert result.completed_stages == list(PIPELINE_STAGES)
 
+def test_pipeline_handles_multiline_input_as_document() -> None:
+    pipeline = PasswordPipeline()
+    result = pipeline.run("one\ntwo\n\nthree", source="file")
+
+    assert len(result.source_documents) == 1
+    assert len(result.parsed_passwords) == 3
+    assert result.parsed_passwords[0].cleaned_password == "one"
+    assert result.parsed_passwords[1].cleaned_password == "two"
+    assert result.parsed_passwords[2].cleaned_password == "three"
+    assert result.report is not None
+    assert result.report.total_passwords == 3
 
 def test_pipeline_handles_list_input() -> None:
     pipeline = PasswordPipeline()
@@ -81,7 +100,13 @@ def test_pipeline_parses_password_candidates() -> None:
     assert result.parsed_passwords[0].source == "cli"
     assert result.parsed_passwords[0].raw_password == "Password1!"
 
+def test_pipeline_preserves_line_numbers_from_document() -> None:
+    result = run_password_pipeline("first\nsecond\nthird", source="file")
 
+    assert result.parsed_passwords[0].line_number == 1
+    assert result.parsed_passwords[1].line_number == 2
+    assert result.parsed_passwords[2].line_number == 3
+    
 def test_pipeline_creates_policy_results() -> None:
     result = run_password_pipeline("Password1!", source="cli")
 

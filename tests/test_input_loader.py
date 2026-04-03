@@ -4,6 +4,8 @@ from pathlib import Path
 from password_strength.exceptions import PasswordInputError
 from password_strength.input_loader import LoadedInput
 from password_strength.input_loader import load_password_input
+from password_strength.input_loader import load_source_documents
+from password_strength.models import SourceDocument
 
 
 def test_load_single_password() -> None:
@@ -47,6 +49,40 @@ def test_load_from_stdin() -> None:
 
     assert loaded.values == ["one", "two"]
     assert loaded.source == "stdin"
+
+
+def test_load_source_documents_for_single_password() -> None:
+    documents = load_source_documents(password="Example123!")
+
+    assert len(documents) == 1
+    assert isinstance(documents[0], SourceDocument)
+    assert documents[0].content == "Example123!"
+    assert documents[0].source == "cli_password"
+
+
+def test_load_source_documents_for_file(tmp_path: Path) -> None:
+    file_path = tmp_path / "passwords.txt"
+    file_path.write_text("one\ntwo\n", encoding="utf-8")
+
+    documents = load_source_documents(file=str(file_path))
+
+    assert len(documents) == 1
+    assert documents[0].source == "file"
+    assert documents[0].source_name == str(file_path)
+    assert documents[0].line_count == 2
+
+
+def test_load_source_documents_for_multiple_files(tmp_path: Path) -> None:
+    first = tmp_path / "a.txt"
+    second = tmp_path / "b.txt"
+    first.write_text("one\n", encoding="utf-8")
+    second.write_text("two\nthree\n", encoding="utf-8")
+
+    documents = load_source_documents(files=[str(first), str(second)])
+
+    assert len(documents) == 2
+    assert documents[0].source_name == str(first)
+    assert documents[1].source_name == str(second)
 
 
 def test_reject_no_input() -> None:

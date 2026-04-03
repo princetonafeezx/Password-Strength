@@ -570,3 +570,17 @@ resources/
     └── strict.json
 
 tests/
+
+## Coding standards
+
+This project uses a small but strict quality baseline from the start:
+
+- **Ruff** for linting and import sorting
+- **mypy** for static type checking
+- **pytest** for automated tests
+- **EditorConfig** for consistent whitespace and file formatting
+
+### Install developer tools
+
+```powershell
+pip install -e .[dev]

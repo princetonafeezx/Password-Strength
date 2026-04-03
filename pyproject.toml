@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "password-strength"
+name = "password-strength-architect"
 version = "0.1.0"
-description = "Enterprise-grade CLI password strength auditor"
+description = "Enterprise-grade CLI password auditing and strength analysis tool."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -13,9 +13,22 @@ authors = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6.0",
+  "mypy>=1.10.0",
+]
+
+[project.scripts]
+password-architect = "password_strength.cli:main"
+
 [tool.setuptools]
-package-dir = {"" = "."}
+include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["."]
 include = ["password_strength*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

@@ -10,3 +10,8 @@ def test_parser_builds() -> None:
 def test_base_exception_exists() -> None:
     error = PasswordStrengthError("boom")
     assert str(error) == "boom"
+
+
+def test_parser_has_description() -> None:
+    parser = build_parser()
+    assert parser.description == "Enterprise-grade CLI password auditing tool."

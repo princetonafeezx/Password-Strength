@@ -95,6 +95,7 @@ class PipelineContext:
     sanitized_input: Any = None
     policy_name: str = "default"
     export_format: str = "console"
+    export_redacted: bool = False
     policy_config: PasswordPolicyConfig | None = None
     parsed_passwords: list[PasswordCandidate] = field(default_factory=list)
     policy_results: list[PasswordPolicyResult] = field(default_factory=list)
@@ -118,10 +119,12 @@ class PasswordPipeline:
         self,
         policy_name: str = "default",
         export_format: str = "console",
+        export_redacted: bool = False,
     ) -> None:
         self.stage_order = PIPELINE_STAGES
         self.policy_name = policy_name
         self.export_format = export_format
+        self.export_redacted = export_redacted
 
     def run(self, raw_input: Any, source: str = "unknown") -> PipelineContext:
         """Run the full password pipeline in the defined stage order."""
@@ -130,6 +133,7 @@ class PasswordPipeline:
             raw_input=raw_input,
             policy_name=self.policy_name,
             export_format=self.export_format,
+            export_redacted=self.export_redacted,
         )
 
         context = self.read_input(context)
@@ -178,12 +182,9 @@ class PasswordPipeline:
                 else [context.raw_input] * len(context.sanitized_input)
             )
             parsed_passwords: list[PasswordCandidate] = []
-            for index, (raw_value, cleaned_value) in enumerate(
-                zip(raw_values, context.sanitized_input, strict=True),
-                start=1,
-            ):
+            for index, raw_value in enumerate(raw_values, start=1):
                 cleaned_password, actions = sanitize_password_value(str(raw_value))
-                if not cleaned_value and not cleaned_password:
+                if not cleaned_password:
                     continue
                 parsed_passwords.append(
                     PasswordCandidate(
@@ -310,14 +311,8 @@ class PasswordPipeline:
         return context
 
     def export_results(self, context: PipelineContext) -> PipelineContext:
-        """Prepare exportable output structures."""
+        """Mark export stage; final serialized output is produced in ``build_report``."""
         context.mark_stage_complete("export_results")
-        preview_report = _build_run_report(context)
-        context.exported_output = export_records(
-            context.classified_results,
-            preview_report,
-            context.export_format,
-        )
         return context
 
     def build_report(self, context: PipelineContext) -> PipelineContext:
@@ -328,6 +323,7 @@ class PasswordPipeline:
             context.classified_results,
             context.report,
             context.export_format,
+            redacted=context.export_redacted,
         )
         return context
 
@@ -369,6 +365,11 @@ def _build_run_report(context: PipelineContext) -> PasswordRunReport:
         if count > 1
     )
 
+    exit_code = _compute_exit_code(
+        non_compliant_passwords=non_compliant_passwords,
+        classified_results=context.classified_results,
+    )
+
     return PasswordRunReport(
         source=context.source,
         total_passwords=total_passwords,
@@ -383,8 +384,27 @@ def _build_run_report(context: PipelineContext) -> PasswordRunReport:
         score_results_count=score_results_count,
         classified_results_count=classified_results_count,
         completed_stages=list(context.completed_stages),
-        exit_code=0,
+        exit_code=exit_code,
     )
+
+
+def _compute_exit_code(
+    *,
+    non_compliant_passwords: int,
+    classified_results: list[PasswordAuditRecord],
+) -> int:
+    """Non-zero when policy fails or high-risk dictionary signals are present."""
+    if non_compliant_passwords > 0:
+        return 1
+    for record in classified_results:
+        dr = record.dictionary_result
+        if dr is not None and (
+            dr.matches_common_password
+            or dr.near_common_password
+            or len(dr.banned_tokens_detected) > 0
+        ):
+            return 1
+    return 0
 
 
 def run_password_pipeline(
@@ -392,10 +412,12 @@ def run_password_pipeline(
     source: str = "unknown",
     policy_name: str = "default",
     export_format: str = "console",
+    export_redacted: bool = False,
 ) -> PipelineContext:
     """Convenience wrapper for running the password pipeline."""
     pipeline = PasswordPipeline(
         policy_name=policy_name,
         export_format=export_format,
+        export_redacted=export_redacted,
     )
     return pipeline.run(raw_input=raw_input, source=source)

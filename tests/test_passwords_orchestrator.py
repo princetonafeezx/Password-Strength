@@ -160,3 +160,10 @@ def test_pipeline_run_report_to_dict_is_serializable() -> None:
     assert serialized["source"] == "cli"
     assert serialized["total_passwords"] == 1
     assert serialized["classified_results_count"] == 1
+
+
+def test_pipeline_report_exit_code_nonzero_for_dictionary_match() -> None:
+    result = run_password_pipeline("password", source="cli")
+
+    assert result.report is not None
+    assert result.report.exit_code == 1

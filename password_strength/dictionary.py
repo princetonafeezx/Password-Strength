@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from collections.abc import Iterable
 
 from password_strength.models import DictionaryMatchResult, PasswordCandidate
@@ -88,15 +89,25 @@ def analyze_dictionary(
         if password
     }
 
+    length_buckets: dict[int, list[str]] = defaultdict(list)
+    for norm_key in common_lookup:
+        length_buckets[len(norm_key)].append(norm_key)
+
     if normalized_password and normalized_password in common_lookup:
         result.matches_common_password = True
         result.matched_common_password = common_lookup[normalized_password]
         result.add_warning("Password matches a known common password.")
     elif normalized_password:
+        pwd_len = len(normalized_password)
+        near_candidates = (
+            length_buckets[pwd_len - 1]
+            + length_buckets[pwd_len]
+            + length_buckets[pwd_len + 1]
+        )
         if any(
-            len(common_password) >= 6
-            and _is_edit_distance_one(normalized_password, common_password)
-            for common_password in common_lookup
+            len(candidate_norm) >= 6
+            and _is_edit_distance_one(normalized_password, candidate_norm)
+            for candidate_norm in near_candidates
         ):
             result.near_common_password = True
             result.add_warning("Password is only one edit away from a common password.")

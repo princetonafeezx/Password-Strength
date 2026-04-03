@@ -92,7 +92,9 @@ def validate_policy_config(config: Mapping[str, object]) -> PasswordPolicyConfig
 def _as_int(value: object, field_name: str) -> int:
     """Coerce an integer configuration field with a clear error message."""
     if isinstance(value, bool):
-        return int(value)
+        raise PolicyConfigurationError(
+            f"Policy field '{field_name}' must be an integer, not a boolean."
+        )
     if isinstance(value, int):
         return value
     if isinstance(value, str):

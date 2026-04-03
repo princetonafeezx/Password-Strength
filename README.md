@@ -360,7 +360,7 @@ This file should become the central pipeline coordinator for password auditing, 
 Add command modules such as password_audit.py, password_validate.py, and password_export.py under your CLI command package.
 
 6. Add password-related resource files.
-Create a resources/ folder for built-in weak password lists, keyboard patterns, banned tokens, and policy presets.
+Ship built-in weak password lists, keyboard patterns, banned tokens, and policy presets under ``password_strength/data/`` so they install with the package.
 
 7. Extend the package entrypoint.
 Register the new password commands in the main CLI entrypoint so they behave like first-class DataGuard commands.
@@ -555,19 +555,19 @@ password_strength/
 ├── policy.py
 ├── resources.py
 ├── scope.py
+├── data/
+│   ├── banned_tokens.txt
+│   ├── common_passwords.txt
+│   ├── keyboard_patterns.txt
+│   └── policies/
+│       ├── default.json
+│       └── strict.json
 └── cli/
     ├── __init__.py
     ├── password_audit.py
     ├── password_export.py
+    ├── password_score.py
     └── password_validate.py
-
-resources/
-├── banned_tokens.txt
-├── common_passwords.txt
-├── keyboard_patterns.txt
-└── policies/
-    ├── default.json
-    └── strict.json
 
 tests/
 

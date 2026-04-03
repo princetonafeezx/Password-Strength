@@ -73,11 +73,13 @@ def run_pipeline_from_args(
 ) -> PipelineContext:
     """Run the password pipeline for a parsed subcommand namespace."""
     raw_input, source = collect_raw_input(args)
+    export_redacted = bool(getattr(args, "redact", False))
     return run_password_pipeline(
         raw_input=raw_input,
         source=source,
         policy_name=args.policy,
         export_format=export_format,
+        export_redacted=export_redacted,
     )
 
 

@@ -14,7 +14,13 @@ from password_strength.models import (
 
 
 def estimate_entropy(password: str) -> float:
-    """Estimate password entropy using an approximate character-set size."""
+    """Estimate password entropy using an approximate character-set size.
+
+    ASCII class counts are a rough lower bound. For Unicode-heavy passwords,
+    the estimate also considers distinct codepoints so scores are not stuck
+    at a tiny alphabet when non-ASCII characters are present. This remains a
+    heuristic, not a cryptographic strength guarantee.
+    """
     if not password:
         return 0.0
 
@@ -29,6 +35,13 @@ def estimate_entropy(password: str) -> float:
         charset_size += 33
     if any(char.isspace() for char in password):
         charset_size += 1
+
+    unique_chars = len(set(password))
+    if charset_size <= 1 and unique_chars > 1:
+        charset_size = max(charset_size, unique_chars)
+
+    if any(ord(ch) > 127 for ch in password):
+        charset_size = max(charset_size, min(65536, max(unique_chars * 4, 256)))
 
     if charset_size <= 1:
         return float(len(password))

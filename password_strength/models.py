@@ -51,6 +51,18 @@ class PasswordCandidate:
             "was_modified_by_sanitizer": self.was_modified_by_sanitizer,
         }
 
+    def to_safe_dict(self) -> dict[str, Any]:
+        """Serialize metadata only; omit raw and cleaned password material."""
+        return {
+            "source": self.source,
+            "source_file": self.source_file,
+            "line_number": self.line_number,
+            "original_length": self.original_length,
+            "cleaned_length": self.cleaned_length,
+            "sanitizer_actions": list(self.sanitizer_actions),
+            "was_modified_by_sanitizer": self.was_modified_by_sanitizer,
+        }
+
 
 @dataclass(slots=True)
 class PasswordPolicyResult:
@@ -332,6 +344,81 @@ class PasswordAuditRecord:
     def add_remediation_suggestion(self, suggestion: str) -> None:
         """Record a remediation suggestion on the audit record."""
         self.remediation_suggestions.append(suggestion)
+
+    def to_safe_dict(self) -> dict[str, Any]:
+        """Serialize for shared logs and SIEM-style exports (no password material)."""
+        p, pat, s = self.policy_result, self.pattern_result, self.score_result
+        dictionary_safe: dict[str, Any] | None
+        if self.dictionary_result is None:
+            dictionary_safe = None
+        else:
+            dr = self.dictionary_result
+            dictionary_safe = {
+                "matches_common_password": dr.matches_common_password,
+                "near_common_password": dr.near_common_password,
+                "banned_tokens_detected": list(dr.banned_tokens_detected),
+                "weak_family_detected": dr.weak_family_detected,
+                "weak_family_label": dr.weak_family_label,
+                "dictionary_warnings": list(dr.warnings),
+                "has_dictionary_findings": dr.has_dictionary_findings,
+            }
+        return {
+            "candidate": self.candidate.to_safe_dict(),
+            "policy_result": {
+                "min_length_passed": p.min_length_passed,
+                "max_length_passed": p.max_length_passed,
+                "lowercase_passed": p.lowercase_passed,
+                "uppercase_passed": p.uppercase_passed,
+                "digit_passed": p.digit_passed,
+                "special_character_passed": p.special_character_passed,
+                "unique_character_count": p.unique_character_count,
+                "min_unique_characters_passed": p.min_unique_characters_passed,
+                "character_class_count": p.character_class_count,
+                "min_character_classes_passed": p.min_character_classes_passed,
+                "failed_rules": list(p.failed_rules),
+                "passed_rules": list(p.passed_rules),
+                "policy_passed": p.policy_passed,
+            },
+            "pattern_result": {
+                "repeated_characters_detected": pat.repeated_characters_detected,
+                "repeated_chunks_detected": pat.repeated_chunks_detected,
+                "sequential_characters_detected": pat.sequential_characters_detected,
+                "reverse_sequence_detected": pat.reverse_sequence_detected,
+                "keyboard_pattern_detected": pat.keyboard_pattern_detected,
+                "year_pattern_detected": pat.year_pattern_detected,
+                "date_pattern_detected": pat.date_pattern_detected,
+                "email_like_detected": pat.email_like_detected,
+                "phone_like_detected": pat.phone_like_detected,
+                "weak_tokens_detected": list(pat.weak_tokens_detected),
+                "pattern_hits": list(pat.pattern_hits),
+                "pattern_warnings": list(pat.warnings),
+                "has_pattern_findings": pat.has_pattern_findings,
+            },
+            "score_result": {
+                "entropy_estimate": s.entropy_estimate,
+                "length_score": s.length_score,
+                "diversity_score": s.diversity_score,
+                "pattern_penalty": s.pattern_penalty,
+                "dictionary_penalty": s.dictionary_penalty,
+                "repetition_penalty": s.repetition_penalty,
+                "predictability_penalty": s.predictability_penalty,
+                "randomness_bonus": s.randomness_bonus,
+                "passphrase_bonus": s.passphrase_bonus,
+                "final_score": s.final_score,
+                "strength_label": s.strength_label,
+                "scoring_notes": list(s.scoring_notes),
+                "total_penalty": s.total_penalty,
+                "total_bonus": s.total_bonus,
+            },
+            "dictionary_result": dictionary_safe,
+            "masked_password": self.masked_password,
+            "policy_passed": self.policy_passed,
+            "score": self.score,
+            "strength_rating": self.strength_rating,
+            "findings": list(self.findings),
+            "warnings": list(self.warnings),
+            "remediation_suggestions": list(self.remediation_suggestions),
+        }
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the audit record into a stable dictionary."""

@@ -81,6 +81,22 @@ def test_password_candidate_to_dict() -> None:
     assert result["original_length"] == 10
 
 
+def test_password_candidate_to_safe_dict_omits_secrets() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Secret!",
+        cleaned_password="Secret!",
+        source="cli",
+        line_number=3,
+    )
+    safe = candidate.to_safe_dict()
+
+    assert "raw_password" not in safe
+    assert "cleaned_password" not in safe
+    assert safe["cleaned_length"] == 7
+    assert safe["source"] == "cli"
+    assert safe["line_number"] == 3
+
+
 def test_password_policy_result_defaults() -> None:
     candidate = PasswordCandidate(
         raw_password="Example123!",
@@ -345,6 +361,35 @@ def test_password_audit_record_to_dict() -> None:
     assert serialized["masked_password"] == "Ex*******!"
     assert serialized["score"] == 72
     assert serialized["strength_rating"] == "Strong"
+
+
+def test_password_audit_record_to_safe_dict_omits_password_material() -> None:
+    candidate = PasswordCandidate(
+        raw_password="Secret!",
+        cleaned_password="Secret!",
+    )
+    policy_result = PasswordPolicyResult(candidate=candidate)
+    pattern_result = PasswordPatternResult(candidate=candidate)
+    score_result = PasswordScoreResult(
+        candidate=candidate,
+        final_score=72,
+        strength_label="Strong",
+    )
+
+    record = PasswordAuditRecord(
+        candidate=candidate,
+        policy_result=policy_result,
+        pattern_result=pattern_result,
+        score_result=score_result,
+        masked_password="Se****!",
+    )
+
+    safe = record.to_safe_dict()
+
+    assert "raw_password" not in safe["candidate"]
+    assert "cleaned_password" not in safe["candidate"]
+    assert safe["masked_password"] == "Se****!"
+    assert safe["score"] == 72
 
 
 def test_password_run_report_defaults() -> None:

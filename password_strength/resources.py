@@ -4,54 +4,53 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from pathlib import Path
+from importlib import resources
 from typing import cast
 
 from password_strength.exceptions import ResourceLoadError
 
-PACKAGE_ROOT = Path(__file__).resolve().parent
-PROJECT_ROOT = PACKAGE_ROOT.parent
-RESOURCES_DIR = PROJECT_ROOT / "resources"
-POLICIES_DIR = RESOURCES_DIR / "policies"
+_DATA_ROOT = resources.files("password_strength.data")
 
 
-def read_text_lines(path: Path) -> list[str]:
-    """Read non-empty, stripped lines from a text resource file."""
+def _read_text_lines(relative_parts: tuple[str, ...]) -> list[str]:
+    """Read non-empty stripped lines from a file under bundled ``data``."""
+    path = _DATA_ROOT.joinpath(*relative_parts)
     try:
-        with path.open("r", encoding="utf-8") as handle:
-            return [line.strip() for line in handle if line.strip()]
-    except OSError as exc:
-        raise ResourceLoadError(f"Unable to read resource file: {path}") from exc
+        text = path.read_text(encoding="utf-8")
+    except (OSError, FileNotFoundError) as exc:
+        rel = "/".join(relative_parts)
+        raise ResourceLoadError(f"Unable to read bundled resource: {rel}") from exc
+    return [line.strip() for line in text.splitlines() if line.strip()]
 
 
 @lru_cache(maxsize=1)
 def load_common_passwords() -> list[str]:
     """Load the built-in common password list."""
-    return read_text_lines(RESOURCES_DIR / "common_passwords.txt")
+    return _read_text_lines(("common_passwords.txt",))
 
 
 @lru_cache(maxsize=1)
 def load_keyboard_patterns() -> list[str]:
     """Load the built-in keyboard pattern list."""
-    return read_text_lines(RESOURCES_DIR / "keyboard_patterns.txt")
+    return _read_text_lines(("keyboard_patterns.txt",))
 
 
 @lru_cache(maxsize=1)
 def load_banned_tokens() -> list[str]:
     """Load the built-in banned token list."""
-    return read_text_lines(RESOURCES_DIR / "banned_tokens.txt")
+    return _read_text_lines(("banned_tokens.txt",))
 
 
 def load_policy_preset(policy_name: str) -> dict[str, object]:
     """Load a JSON policy preset by name."""
     normalized = policy_name.strip().lower()
-    policy_path = POLICIES_DIR / f"{normalized}.json"
-
+    path = _DATA_ROOT.joinpath("policies", f"{normalized}.json")
     try:
-        with policy_path.open("r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-            return cast(dict[str, object], payload)
-    except OSError as exc:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, FileNotFoundError) as exc:
         raise ResourceLoadError(f"Unable to load policy preset '{normalized}'.") from exc
+    try:
+        payload = json.loads(text)
     except json.JSONDecodeError as exc:
         raise ResourceLoadError(f"Policy preset '{normalized}' is not valid JSON.") from exc
+    return cast(dict[str, object], payload)

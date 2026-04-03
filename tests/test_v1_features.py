@@ -48,3 +48,18 @@ def test_json_export_contains_report_and_records() -> None:
     assert "report" in payload
     assert "records" in payload
     assert payload["records"][0]["masked_password"].startswith("Lo")
+
+
+def test_json_safe_export_omits_raw_and_cleaned_passwords() -> None:
+    result = run_password_pipeline(
+        "LongerExamplePass123!",
+        source="cli",
+        export_format="json-safe",
+    )
+    payload = json.loads(result.exported_output)
+    rec0 = payload["records"][0]
+
+    assert "cleaned_password" not in rec0
+    assert "raw_password_optional" not in rec0
+    assert "raw_password" not in rec0["candidate"]
+    assert "cleaned_password" not in rec0["candidate"]

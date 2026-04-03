@@ -29,6 +29,12 @@ include-package-data = true
 [tool.setuptools.packages.find]
 include = ["password_strength*"]
 
+[tool.setuptools.package-data]
+password_strength = [
+  "data/*.txt",
+  "data/policies/*.json",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

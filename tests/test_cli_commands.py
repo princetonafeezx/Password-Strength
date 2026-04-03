@@ -28,6 +28,15 @@ def test_export_command_registers() -> None:
     assert callable(args.command_handler)
 
 
+def test_score_command_registers() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["score", "--password", "Example123!"])
+
+    assert args.command == "score"
+    assert args.password == "Example123!"
+    assert callable(args.command_handler)
+
+
 def test_main_runs_audit_command() -> None:
     exit_code = main(["audit", "--password", "Example123!"])
     assert exit_code == 0
@@ -35,6 +44,11 @@ def test_main_runs_audit_command() -> None:
 
 def test_main_runs_validate_command() -> None:
     exit_code = main(["validate", "--password", "Example123!"])
+    assert exit_code == 0
+
+
+def test_main_runs_score_command() -> None:
+    exit_code = main(["score", "--password", "Example123!"])
     assert exit_code == 0
 
 

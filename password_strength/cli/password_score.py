@@ -1,4 +1,4 @@
-"""Validate command for Password Strength Architect."""
+"""Score command for Password Strength Architect."""
 
 from __future__ import annotations
 
@@ -12,26 +12,27 @@ from password_strength.cli._shared import (
 
 
 def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    """Register the validate subcommand."""
+    """Register the score subcommand."""
     parser = subparsers.add_parser(
-        "validate",
-        help="Validate password policy compliance.",
+        "score",
+        help="Score password strength without exporting a full report.",
     )
     register_common_input_arguments(parser)
     parser.set_defaults(command_handler=handle_command)
 
 
 def handle_command(args: argparse.Namespace) -> int:
-    """Handle the validate command."""
+    """Handle the score command."""
     result = run_pipeline_from_args(args, export_format="json")
     payload = {
         "summary": {} if result.report is None else result.report.to_dict(),
         "records": [
             {
                 "masked_password": record.masked_password,
-                "policy_passed": record.policy_passed,
-                "failed_rules": list(record.policy_result.failed_rules),
-                "passed_rules": list(record.policy_result.passed_rules),
+                "score": record.score,
+                "strength_rating": record.strength_rating,
+                "entropy_estimate": record.score_result.entropy_estimate,
+                "scoring_notes": list(record.score_result.scoring_notes),
             }
             for record in result.classified_results
         ],

@@ -4,23 +4,19 @@ from __future__ import annotations
 
 import argparse
 
-from password_strength.passwords import run_password_pipeline
+from password_strength.cli._shared import register_common_input_arguments, run_pipeline_from_args
 
 
-def register_parser(subparsers: argparse._SubParsersAction) -> None:
+def register_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Register the export subcommand."""
     parser = subparsers.add_parser(
         "export",
         help="Export audit results.",
     )
-    parser.add_argument(
-        "--password",
-        type=str,
-        help="Password to audit before export.",
-    )
+    register_common_input_arguments(parser)
     parser.add_argument(
         "--format",
-        choices=["json", "jsonl", "csv"],
+        choices=["json", "jsonl", "csv", "console"],
         default="json",
         help="Export format.",
     )
@@ -29,17 +25,6 @@ def register_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def handle_command(args: argparse.Namespace) -> int:
     """Handle the export command."""
-    result = run_password_pipeline(
-        raw_input=args.password,
-        source="cli",
-    )
-
-    print(
-        {
-            "format": args.format,
-            "exported": result.exported_output,
-            "summary": result.report,
-        }
-    )
-
-    return 0
+    result = run_pipeline_from_args(args, export_format=args.format)
+    print(result.exported_output)
+    return int(result.report.exit_code) if result.report is not None else 0

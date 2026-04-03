@@ -1,13 +1,17 @@
-from password_strength.models import PasswordAuditRecord
-from password_strength.models import PasswordCandidate
-from password_strength.models import PasswordPatternResult
-from password_strength.models import PasswordPolicyResult
-from password_strength.models import PasswordRunReport
-from password_strength.models import PasswordScoreResult
-from password_strength.passwords import PIPELINE_STAGES
-from password_strength.passwords import PasswordPipeline
-from password_strength.passwords import mask_password
-from password_strength.passwords import run_password_pipeline
+from password_strength.models import (
+    PasswordAuditRecord,
+    PasswordCandidate,
+    PasswordPatternResult,
+    PasswordPolicyResult,
+    PasswordRunReport,
+    PasswordScoreResult,
+)
+from password_strength.passwords import (
+    PIPELINE_STAGES,
+    PasswordPipeline,
+    mask_password,
+    run_password_pipeline,
+)
 
 
 def test_pipeline_exposes_expected_stage_order() -> None:
@@ -108,7 +112,7 @@ def test_pipeline_creates_classified_audit_records() -> None:
     assert len(result.classified_results) == 1
     assert isinstance(result.classified_results[0], PasswordAuditRecord)
     assert result.classified_results[0].candidate.cleaned_password == "Password1!"
-    assert result.classified_results[0].masked_password == "Pa*****1!"
+    assert result.classified_results[0].masked_password == "Pa******1!"
 
 
 def test_pipeline_builds_password_run_report() -> None:

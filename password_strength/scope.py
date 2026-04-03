@@ -19,7 +19,7 @@ class FeatureScope:
         return any(item.lower() == normalized for item in self.in_scope)
 
     def is_out_of_scope(self, feature_name: str) -> bool:
-        """Return True if the given feature is explicitly excluded from the current version scope."""
+        """Return True if the feature is explicitly excluded from scope."""
         normalized = feature_name.strip().lower()
         return any(item.lower() == normalized for item in self.out_of_scope)
 

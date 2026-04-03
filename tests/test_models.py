@@ -1,9 +1,11 @@
-from password_strength.models import PasswordAuditRecord
-from password_strength.models import PasswordCandidate
-from password_strength.models import PasswordPatternResult
-from password_strength.models import PasswordPolicyResult
-from password_strength.models import PasswordRunReport
-from password_strength.models import PasswordScoreResult
+from password_strength.models import (
+    PasswordAuditRecord,
+    PasswordCandidate,
+    PasswordPatternResult,
+    PasswordPolicyResult,
+    PasswordRunReport,
+    PasswordScoreResult,
+)
 
 
 def test_password_candidate_stores_values() -> None:

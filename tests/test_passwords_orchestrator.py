@@ -1,5 +1,6 @@
 from password_strength.models import PasswordAuditRecord
 from password_strength.models import PasswordCandidate
+from password_strength.models import PasswordConfig
 from password_strength.models import PasswordPatternResult
 from password_strength.models import PasswordPolicyResult
 from password_strength.models import PasswordRunReport
@@ -9,7 +10,6 @@ from password_strength.passwords import PIPELINE_STAGES
 from password_strength.passwords import PasswordPipeline
 from password_strength.passwords import mask_password
 from password_strength.passwords import run_password_pipeline
-from password_strength.sanitizer import SanitizedDocument
 
 
 def test_pipeline_exposes_expected_stage_order() -> None:
@@ -44,13 +44,39 @@ def test_pipeline_creates_source_documents_for_single_input() -> None:
     assert result.source_documents[0].source == "cli_password"
 
 
-def test_pipeline_sanitizes_documents_before_parsing() -> None:
-    result = run_password_pipeline("\ufeffPass\u200bword1!", source="cli_password")
+def test_pipeline_sanitizes_source_documents() -> None:
+    result = run_password_pipeline("ab\u200bcd", source="stdin")
 
-    assert len(result.sanitized_documents) == 1
-    assert isinstance(result.sanitized_documents[0], SanitizedDocument)
-    assert result.sanitized_documents[0].cleaned_content == "Password1!"
-    assert result.sanitized_input == "Password1!"
+    assert len(result.source_documents) == 1
+    assert result.source_documents[0].content == "abcd"
+    assert result.source_documents[0].raw_content == "ab\u200bcd"
+    assert result.source_documents[0].was_sanitized is True
+
+
+def test_pipeline_uses_password_aware_strict_sanitization() -> None:
+    result = run_password_pipeline(
+        "  Example123!  ",
+        source="cli",
+        config=PasswordConfig(passphrase_mode=False),
+    )
+
+    assert result.parsed_passwords[0].raw_password == "  Example123!  "
+    assert result.parsed_passwords[0].cleaned_password == "Example123!"
+    assert "trimmed_outer_whitespace" in result.parsed_passwords[0].sanitizer_actions
+
+
+def test_pipeline_uses_password_aware_passphrase_sanitization() -> None:
+    result = run_password_pipeline(
+        "correct   horse   battery staple",
+        source="cli",
+        config=PasswordConfig(passphrase_mode=True, require_special=False),
+    )
+
+    assert result.parsed_passwords[0].cleaned_password == "correct horse battery staple"
+    assert (
+        "normalized_internal_whitespace_for_passphrase"
+        in result.parsed_passwords[0].sanitizer_actions
+    )
 
 
 def test_pipeline_runs_all_stages_for_single_password() -> None:
@@ -64,16 +90,6 @@ def test_pipeline_runs_all_stages_for_single_password() -> None:
     assert result.completed_stages == list(PIPELINE_STAGES)
 
 
-def test_pipeline_preserves_raw_and_cleaned_password_values() -> None:
-    result = run_password_pipeline("\ufeffPass\u200bword1!", source="cli_password")
-
-    assert len(result.parsed_passwords) == 1
-    assert result.parsed_passwords[0].raw_password == "\ufeffPass\u200bword1!"
-    assert result.parsed_passwords[0].cleaned_password == "Password1!"
-    assert "removed_bom" in result.parsed_passwords[0].sanitizer_actions
-    assert "removed_zero_width_characters" in result.parsed_passwords[0].sanitizer_actions
-
-
 def test_pipeline_handles_multiline_input_as_document() -> None:
     pipeline = PasswordPipeline()
     result = pipeline.run("one\ntwo\n\nthree", source="file")
@@ -85,6 +101,15 @@ def test_pipeline_handles_multiline_input_as_document() -> None:
     assert result.parsed_passwords[2].cleaned_password == "three"
     assert result.report is not None
     assert result.report.total_passwords == 3
+
+
+def test_pipeline_preserves_raw_and_cleaned_passwords_after_sanitization() -> None:
+    result = run_password_pipeline("ab\u200bcd", source="stdin")
+
+    assert len(result.parsed_passwords) == 1
+    assert result.parsed_passwords[0].raw_password == "ab\u200bcd"
+    assert result.parsed_passwords[0].cleaned_password == "abcd"
+    assert result.parsed_passwords[0].was_modified_by_sanitizer is True
 
 
 def test_pipeline_builds_summary_report() -> None:

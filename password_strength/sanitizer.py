@@ -18,7 +18,8 @@ ZERO_WIDTH_CHARACTERS = {
 }
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
 CONTROL_CHARACTERS_PATTERN = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
-
+_CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 @dataclass(slots=True)
 class SanitizedDocument:
@@ -111,6 +112,34 @@ def _normalize_unicode_whitespace(text: str) -> tuple[str, bool]:
     normalized = "".join(cleaned)
     return normalized, modified
 
+def sanitize_text(text: str) -> tuple[str, list[str]]:
+    """Sanitize raw text and return cleaned text plus applied actions."""
+    cleaned = text
+    actions: list[str] = []
+
+    if any(char in cleaned for char in _ZERO_WIDTH_CHARS):
+        had_bom = "\ufeff" in cleaned
+        cleaned = "".join(char for char in cleaned if char not in _ZERO_WIDTH_CHARS)
+        actions.append("removed_zero_width_characters")
+        if had_bom:
+            actions.append("removed_bom")
+
+    ansi_cleaned = _ANSI_ESCAPE_PATTERN.sub("", cleaned)
+    if ansi_cleaned != cleaned:
+        cleaned = ansi_cleaned
+        actions.append("stripped_ansi_escapes")
+
+    control_cleaned = _CONTROL_CHAR_PATTERN.sub("", cleaned)
+    if control_cleaned != cleaned:
+        cleaned = control_cleaned
+        actions.append("removed_control_characters")
+
+    normalized = unicodedata.normalize("NFKC", cleaned)
+    if normalized != cleaned:
+        cleaned = normalized
+        actions.append("normalized_unicode")
+
+    return cleaned, actions
 
 def sanitize_source_document(document: SourceDocument) -> SanitizedDocument:
     """Sanitize one source document and return both raw and cleaned views."""
@@ -146,7 +175,38 @@ def sanitize_source_document(document: SourceDocument) -> SanitizedDocument:
         warnings=warnings,
     )
 
+def sanitize_source_document(
+    document: SourceDocument,
+    *,
+    config: PasswordConfig | None = None,
+) -> SourceDocument:
+    """Return a sanitized copy of a source document."""
+    effective_config = config or PasswordConfig()
 
-def sanitize_source_documents(documents: list[SourceDocument]) -> list[SanitizedDocument]:
-    """Sanitize a batch of source documents."""
-    return [sanitize_source_document(document) for document in documents]
+    sanitized_lines: list[str] = []
+    combined_actions: list[str] = []
+
+    for line in document.content.splitlines():
+        cleaned_line, line_actions = sanitize_password_line(line, config=effective_config)
+        sanitized_lines.append(cleaned_line)
+        for action in line_actions:
+            if action not in combined_actions:
+                combined_actions.append(action)
+
+    cleaned_content = "\n".join(sanitized_lines)
+
+    metadata = dict(document.metadata)
+    metadata["sanitizer_actions"] = list(combined_actions)
+    metadata["raw_content"] = document.content
+    metadata["passphrase_mode"] = effective_config.passphrase_mode
+    metadata["allow_spaces"] = effective_config.allow_spaces
+
+    return SourceDocument(
+        content=cleaned_content,
+        source=document.source,
+        source_name=document.source_name,
+        document_id=document.document_id,
+        metadata=metadata,
+        raw_content=document.content,
+        sanitizer_actions=combined_actions,
+    )

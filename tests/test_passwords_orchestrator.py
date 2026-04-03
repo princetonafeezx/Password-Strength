@@ -220,3 +220,20 @@ def test_pipeline_run_report_to_dict_is_serializable() -> None:
     assert serialized["source"] == "cli"
     assert serialized["total_passwords"] == 1
     assert serialized["classified_results_count"] == 1
+
+def test_pipeline_preserves_document_raw_and_cleaned_values() -> None:
+    result = run_password_pipeline("  Example123!  ", source="cli")
+
+    assert len(result.source_documents) == 1
+    assert result.source_documents[0].raw_content == "  Example123!  "
+    assert result.source_documents[0].content == "Example123!"
+
+
+def test_pipeline_preserves_candidate_raw_and_cleaned_source_lines() -> None:
+    result = run_password_pipeline("  Example123!  ", source="cli")
+
+    assert len(result.parsed_passwords) == 1
+    assert result.parsed_passwords[0].raw_password == "  Example123!  "
+    assert result.parsed_passwords[0].cleaned_password == "Example123!"
+    assert result.parsed_passwords[0].raw_source_line == "  Example123!  "
+    assert result.parsed_passwords[0].source_line == "Example123!"

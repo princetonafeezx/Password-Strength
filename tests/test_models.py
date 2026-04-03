@@ -542,3 +542,55 @@ def test_password_config_validate_rejects_passphrase_special_requirement() -> No
             str(exc)
             == "passphrase_mode cannot require special characters by default"
         )
+
+def test_source_document_preserves_effective_raw_content() -> None:
+    document = SourceDocument(
+        content="cleaned",
+        raw_content="raw",
+        source="stdin",
+    )
+
+    assert document.effective_raw_content == "raw"
+    assert document.was_sanitized is True
+
+
+def test_password_candidate_preserves_raw_source_line() -> None:
+    candidate = PasswordCandidate(
+        raw_password="  Example123!  ",
+        cleaned_password="Example123!",
+        raw_source_line="  Example123!  ",
+        source_line="Example123!",
+    )
+
+    assert candidate.effective_raw_source_line == "  Example123!  "
+    assert candidate.raw_cleaned_differs is True
+
+
+def test_password_candidate_to_dict_includes_raw_tracking_fields() -> None:
+    candidate = PasswordCandidate(
+        raw_password="  Example123!  ",
+        cleaned_password="Example123!",
+        raw_source_line="  Example123!  ",
+        source_line="Example123!",
+    )
+
+    serialized = candidate.to_dict()
+
+    assert serialized["raw_source_line"] == "  Example123!  "
+    assert serialized["effective_raw_source_line"] == "  Example123!  "
+    assert serialized["raw_cleaned_differs"] is True
+
+def test_source_document_to_dict_includes_raw_tracking_fields() -> None:
+    document = SourceDocument(
+        content="cleaned",
+        raw_content="raw",
+        source="stdin",
+        sanitizer_actions=["normalized_unicode"],
+    )
+
+    serialized = document.to_dict()
+
+    assert serialized["raw_content"] == "raw"
+    assert serialized["effective_raw_content"] == "raw"
+    assert serialized["was_sanitized"] is True
+    
